@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Skill Sources Topic File",
+  "description": "A curated collection of URLs for a specific topic",
+  "type": "object",
+  "required": ["topic", "description", "tags", "sources"],
+  "properties": {
+    "topic": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Topic identifier in kebab-case"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of the topic"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Topic-level tags for discovery"
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["url", "title", "priority", "summary", "addedAt", "addedBy"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Source URL"
+          },
+          "title": {
+            "type": "string",
+            "description": "Page or article title"
+          },
+          "author": {
+            "type": "string",
+            "description": "Author or publisher name"
+          },
+          "date": {
+            "type": "string",
+            "description": "Publication date (YYYY-MM or YYYY-MM-DD)"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["P0", "P1", "P2"],
+            "description": "Source reliability: P0=official, P1=reputable third-party, P2=community"
+          },
+          "summary": {
+            "type": "string",
+            "description": "One-line summary of the content"
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Content-level tags for claim extraction"
+          },
+          "addedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when added"
+          },
+          "addedBy": {
+            "type": "string",
+            "description": "GitHub username of the person who added this source"
+          }
+        }
+      }
+    }
+  }
+}

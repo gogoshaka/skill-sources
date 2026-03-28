@@ -1,0 +1,49 @@
+name: Update index
+
+on:
+  push:
+    paths:
+      - 'topics/*.json'
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  update-index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate _index.json
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          const topicsDir = 'topics';
+          const files = fs.readdirSync(topicsDir).filter(f => f.endsWith('.json'));
+          const topics = files.map(f => {
+            const data = JSON.parse(fs.readFileSync(path.join(topicsDir, f), 'utf8'));
+            return {
+              file: 'topics/' + f,
+              topic: data.topic,
+              description: data.description,
+              tags: data.tags || [],
+              sourceCount: (data.sources || []).length
+            };
+          });
+          const index = {
+            generatedAt: new Date().toISOString(),
+            topics
+          };
+          fs.writeFileSync('_index.json', JSON.stringify(index, null, 2) + '\n');
+          console.log('Updated _index.json with ' + topics.length + ' topics');
+          "
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add _index.json
+          git diff --cached --quiet || git commit -m "chore: update _index.json" && git push

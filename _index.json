@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-03-28T14:12:00Z",
+  "topics": [
+    {
+      "file": "topics/microsoft-sentinel-graph.json",
+      "topic": "microsoft-sentinel-graph",
+      "description": "Microsoft Sentinel Graph — graph-based security analytics, incident graph, hunting graph, custom graphs",
+      "tags": ["sentinel", "graph", "security", "microsoft", "siem", "defender"],
+      "sourceCount": 7
+    }
+  ]
+}
