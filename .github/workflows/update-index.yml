@@ -23,22 +23,26 @@ jobs:
           const path = require('path');
           const topicsDir = 'topics';
           const files = fs.readdirSync(topicsDir).filter(f => f.endsWith('.json'));
-          const topics = files.map(f => {
+          const items = files.map(f => {
             const data = JSON.parse(fs.readFileSync(path.join(topicsDir, f), 'utf8'));
             return {
-              file: 'topics/' + f,
-              topic: data.topic,
-              description: data.description,
-              tags: data.tags || [],
-              sourceCount: (data.sources || []).length
+              id: data.title,
+              url: 'topics/' + f,
+              title: data.title,
+              summary: data.description || '',
+              tags: data._tags || [],
+              _source_count: (data.items || []).length
             };
           });
           const index = {
-            generatedAt: new Date().toISOString(),
-            topics
+            version: 'https://jsonfeed.org/version/1.1',
+            title: 'Skill Sources',
+            description: 'Curated source library for Slideless deck research',
+            _generated_at: new Date().toISOString(),
+            items
           };
           fs.writeFileSync('_index.json', JSON.stringify(index, null, 2) + '\n');
-          console.log('Updated _index.json with ' + topics.length + ' topics');
+          console.log('Updated _index.json with ' + items.length + ' topic(s)');
           "
 
       - name: Commit if changed

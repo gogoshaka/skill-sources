@@ -39,6 +39,7 @@ export async function generateTagsLocally(title, excerpt) {
 
     const session = await LanguageModel.create({
       initialPrompts: [{ role: 'system', content: TAG_PROMPT }],
+      expectedOutputLanguages: ['en'],
     });
 
     const userMessage = `Title: ${title}\n\nContent:\n${excerpt.slice(0, 1500)}`;

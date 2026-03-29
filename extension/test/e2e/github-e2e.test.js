@@ -100,16 +100,18 @@ describe('E2E: GitHub API', () => {
     assert.ok(file.sha, 'should have a sha');
 
     const index = decode(file.content);
-    assert.ok(Array.isArray(index.topics), 'should have a topics array');
-    console.log(`   Index has ${index.topics.length} topic(s)`);
+    assert.ok(Array.isArray(index.items), 'should have an items array');
+    console.log(`   Index has ${index.items.length} topic(s)`);
   });
 
   it('creates a new test topic file', async () => {
     const topicData = {
-      topic: TEST_TOPIC,
+      version: 'https://jsonfeed.org/version/1.1',
+      title: TEST_TOPIC,
       description: 'E2E test topic — will be deleted',
-      tags: ['e2e-test'],
-      sources: [],
+      language: 'en',
+      _tags: ['e2e-test'],
+      items: [],
     };
 
     const result = await githubPut(topicPath, {
@@ -127,18 +129,19 @@ describe('E2E: GitHub API', () => {
     const existing = decode(file.content);
 
     const newSource = {
+      id: 'https://example.com/e2e-test-article',
       url: 'https://example.com/e2e-test-article',
       title: 'E2E Test Article',
-      author: 'Test Runner',
-      date: '2026-03',
-      priority: 'P2',
       summary: 'This source was created by an automated E2E test',
       tags: ['e2e-test'],
-      addedAt: new Date().toISOString(),
-      addedBy: 'e2e-test',
+      date_published: new Date().toISOString(),
+      authors: [{ name: 'e2e-test' }],
+      _source_author: 'Test Runner',
+      _source_date: '2026-03',
+      _priority: 'P2',
     };
 
-    existing.sources.push(newSource);
+    existing.items.push(newSource);
 
     const result = await githubPut(topicPath, {
       message: `e2e: add test source to ${TEST_TOPIC}`,
@@ -152,13 +155,13 @@ describe('E2E: GitHub API', () => {
     const updated = await githubGet(topicPath);
     const parsed = decode(updated.content);
 
-    assert.equal(parsed.sources.length, 1, 'should have 1 source');
-    assert.equal(parsed.sources[0].url, 'https://example.com/e2e-test-article');
-    console.log(`   Source appended (${parsed.sources.length} total)`);
+    assert.equal(parsed.items.length, 1, 'should have 1 item');
+    assert.equal(parsed.items[0].url, 'https://example.com/e2e-test-article');
+    console.log(`   Source appended (${parsed.items.length} total)`);
   });
 
   it('fails on sha mismatch (409 conflict)', async () => {
-    const staleContent = encode({ topic: TEST_TOPIC, sources: [] });
+    const staleContent = encode({ version: 'https://jsonfeed.org/version/1.1', title: TEST_TOPIC, items: [] });
 
     const res = await fetch(`${API}${topicPath}`, {
       method: 'PUT',

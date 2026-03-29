@@ -1,31 +1,45 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Skill Sources Topic File",
-  "description": "A curated collection of URLs for a specific topic",
+  "title": "Skill Sources Topic Feed (JSON Feed 1.1)",
+  "description": "A curated collection of URLs for a specific topic, following the JSON Feed 1.1 specification (https://jsonfeed.org/version/1.1)",
   "type": "object",
-  "required": ["topic", "description", "tags", "sources"],
+  "required": ["version", "title", "items"],
   "properties": {
-    "topic": {
+    "version": {
+      "type": "string",
+      "const": "https://jsonfeed.org/version/1.1",
+      "description": "JSON Feed version URL"
+    },
+    "title": {
       "type": "string",
       "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-      "description": "Topic identifier in kebab-case"
+      "description": "Feed title — the topic identifier in kebab-case"
     },
     "description": {
       "type": "string",
       "description": "Short description of the topic"
     },
-    "tags": {
+    "language": {
+      "type": "string",
+      "description": "Primary language of the feed (BCP 47)"
+    },
+    "_tags": {
       "type": "array",
       "items": { "type": "string" },
       "minItems": 1,
-      "description": "Topic-level tags for discovery"
+      "description": "Topic-level tags for discovery (extension)"
     },
-    "sources": {
+    "items": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["url", "title", "priority", "summary", "addedAt", "addedBy"],
+        "required": ["id", "url", "title", "_priority", "summary", "date_published", "authors"],
         "properties": {
+          "id": {
+            "type": "string",
+            "format": "uri",
+            "description": "Unique identifier for the item (the source URL)"
+          },
           "url": {
             "type": "string",
             "format": "uri",
@@ -34,19 +48,6 @@
           "title": {
             "type": "string",
             "description": "Page or article title"
-          },
-          "author": {
-            "type": "string",
-            "description": "Author or publisher name"
-          },
-          "date": {
-            "type": "string",
-            "description": "Publication date (YYYY-MM or YYYY-MM-DD)"
-          },
-          "priority": {
-            "type": "string",
-            "enum": ["P0", "P1", "P2"],
-            "description": "Source reliability: P0=official, P1=reputable third-party, P2=community"
           },
           "summary": {
             "type": "string",
@@ -57,14 +58,38 @@
             "items": { "type": "string" },
             "description": "Content-level tags for claim extraction"
           },
-          "addedAt": {
+          "date_published": {
             "type": "string",
             "format": "date-time",
-            "description": "ISO 8601 timestamp when added"
+            "description": "ISO 8601 timestamp when this item was added to the feed"
           },
-          "addedBy": {
+          "authors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "url": { "type": "string", "format": "uri" }
+              }
+            },
+            "description": "The person(s) who curated this item"
+          },
+          "_source_author": {
             "type": "string",
-            "description": "GitHub username of the person who added this source"
+            "description": "Original author or publisher name (extension)"
+          },
+          "_source_date": {
+            "type": "string",
+            "description": "Original publication date, e.g. YYYY-MM or YYYY-MM-DD (extension)"
+          },
+          "_priority": {
+            "type": "string",
+            "enum": ["P0", "P1", "P2"],
+            "description": "Source reliability: P0=official, P1=reputable third-party, P2=community (extension)"
+          },
+          "_excerpt": {
+            "type": "string",
+            "description": "Temporary page excerpt for server-side tag generation; removed after processing (extension)"
           }
         }
       }

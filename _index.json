@@ -1,10 +1,14 @@
 {
-  "generatedAt": "2026-03-29T12:12:04.218Z",
-  "topics": [
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Skill Sources",
+  "description": "Curated source library for Slideless deck research",
+  "_generated_at": "2026-03-29T12:12:04.218Z",
+  "items": [
     {
-      "file": "topics/microsoft-sentinel-graph.json",
-      "topic": "microsoft-sentinel-graph",
-      "description": "Microsoft Sentinel Graph â graph-based security analytics, incident graph, hunting graph, custom graphs",
+      "id": "microsoft-sentinel-graph",
+      "url": "topics/microsoft-sentinel-graph.json",
+      "title": "microsoft-sentinel-graph",
+      "summary": "Microsoft Sentinel Graph â graph-based security analytics, incident graph, hunting graph, custom graphs",
       "tags": [
         "sentinel",
         "graph",
@@ -13,7 +17,7 @@
         "siem",
         "defender"
       ],
-      "sourceCount": 7
+      "_source_count": 7
     }
   ]
 }

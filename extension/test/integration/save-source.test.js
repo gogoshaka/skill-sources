@@ -53,11 +53,12 @@ api = await loadApi();
 describe('Save source to existing topic', () => {
   it('appends new source to existing topic file', async () => {
     const existingTopic = {
-      id: TOPIC_ID,
+      version: 'https://jsonfeed.org/version/1.1',
+      title: TOPIC_ID,
       description: 'Python resources',
-      tags: ['python'],
-      sources: [
-        { url: 'https://old.example.com', title: 'Old Source', tags: [] },
+      _tags: ['python'],
+      items: [
+        { id: 'https://old.example.com', url: 'https://old.example.com', title: 'Old Source', tags: [] },
       ],
     };
 
@@ -97,17 +98,18 @@ describe('Save source to existing topic', () => {
 
     // Step 2: Append new source
     const newSource = {
+      id: 'https://new.example.com',
       url: 'https://new.example.com',
       title: 'New Resource',
-      author: '',
-      date: '',
-      priority: 'P0',
       summary: 'Great article',
       tags: ['beginner'],
-      addedAt: new Date().toISOString(),
-      addedBy: 'testuser',
+      date_published: new Date().toISOString(),
+      authors: [{ name: 'testuser' }],
+      _source_author: '',
+      _source_date: '',
+      _priority: 'P0',
     };
-    existing.sources.push(newSource);
+    existing.items.push(newSource);
 
     // Step 3: PUT updated file
     const updatedContent = encode(existing);
@@ -123,12 +125,12 @@ describe('Save source to existing topic', () => {
     const putBody = JSON.parse(putReq.body);
     assert.equal(putBody.sha, 'abc123sha');
 
-    // Verify the content contains both sources
+    // Verify the content contains both items
     const decoded = decode(putBody.content);
-    assert.equal(decoded.sources.length, 2);
-    assert.equal(decoded.sources[0].url, 'https://old.example.com');
-    assert.equal(decoded.sources[1].url, 'https://new.example.com');
-    assert.equal(decoded.sources[1].summary, 'Great article');
+    assert.equal(decoded.items.length, 2);
+    assert.equal(decoded.items[0].url, 'https://old.example.com');
+    assert.equal(decoded.items[1].url, 'https://new.example.com');
+    assert.equal(decoded.items[1].summary, 'Great article');
   });
 });
 
@@ -139,8 +141,9 @@ describe('Save source to existing topic', () => {
 describe('Save source — duplicate URL detection', () => {
   it('currently allows duplicate URLs (documents behavior)', async () => {
     const existingTopic = {
-      id: TOPIC_ID,
-      sources: [{ url: 'https://dup.example.com', title: 'First', tags: [] }],
+      version: 'https://jsonfeed.org/version/1.1',
+      title: TOPIC_ID,
+      items: [{ id: 'https://dup.example.com', url: 'https://dup.example.com', title: 'First', tags: [] }],
     };
 
     globalThis.fetch = async (url, opts) => {
@@ -163,12 +166,13 @@ describe('Save source — duplicate URL detection', () => {
     const existing = decode(file.content);
 
     // Add the same URL again
-    existing.sources.push({
+    existing.items.push({
+      id: 'https://dup.example.com',
       url: 'https://dup.example.com',
       title: 'Duplicate',
       tags: [],
-      addedAt: new Date().toISOString(),
-      addedBy: 'user',
+      date_published: new Date().toISOString(),
+      authors: [{ name: 'user' }],
     });
 
     const result = await api.githubPut(path, {
@@ -179,8 +183,8 @@ describe('Save source — duplicate URL detection', () => {
 
     // The API doesn't reject duplicates — the save succeeds
     assert.ok(result, 'Save succeeds even with duplicate URL');
-    assert.equal(existing.sources.length, 2, 'Both entries exist (no dedup)');
-    assert.equal(existing.sources[0].url, existing.sources[1].url);
+    assert.equal(existing.items.length, 2, 'Both entries exist (no dedup)');
+    assert.equal(existing.items[0].url, existing.items[1].url);
   });
 });
 
@@ -203,10 +207,11 @@ describe('Create new topic then save', () => {
       // GET for the newly created topic
       if (url.includes('/contents/topics/new-topic.json') && (!opts?.method || opts.method === 'GET')) {
         const topicData = {
-          id: 'new-topic',
+          version: 'https://jsonfeed.org/version/1.1',
+          title: 'new-topic',
           description: 'A new topic',
-          tags: [],
-          sources: [],
+          _tags: [],
+          items: [],
         };
         return jsonResponse({ content: encode(topicData), sha: 'created_sha' });
       }
@@ -222,10 +227,12 @@ describe('Create new topic then save', () => {
 
     // Step 1: Create the new topic file
     const topicData = {
-      id: 'new-topic',
+      version: 'https://jsonfeed.org/version/1.1',
+      title: 'new-topic',
       description: 'A new topic',
-      tags: ['general'],
-      sources: [],
+      language: 'en',
+      _tags: ['general'],
+      items: [],
     };
 
     await api.githubPut(basePath, {
@@ -238,12 +245,13 @@ describe('Create new topic then save', () => {
     const existing = decode(file.content);
 
     // Step 3: Add a source and save
-    existing.sources.push({
+    existing.items.push({
+      id: 'https://first-source.com',
       url: 'https://first-source.com',
       title: 'First Source',
       tags: [],
-      addedAt: new Date().toISOString(),
-      addedBy: 'testuser',
+      date_published: new Date().toISOString(),
+      authors: [{ name: 'testuser' }],
     });
 
     await api.githubPut(basePath, {
@@ -265,8 +273,8 @@ describe('Create new topic then save', () => {
     assert.equal(updateBody.sha, 'created_sha');
 
     const finalContent = decode(updateBody.content);
-    assert.equal(finalContent.sources.length, 1);
-    assert.equal(finalContent.sources[0].url, 'https://first-source.com');
+    assert.equal(finalContent.items.length, 1);
+    assert.equal(finalContent.items[0].url, 'https://first-source.com');
   });
 });
 

@@ -271,6 +271,27 @@ $('#btn-logout').addEventListener('click', async () => {
 // Cached page excerpt extracted via chrome.scripting.executeScript
 let pageExcerpt = null;
 
+// Check local LLM availability and show badge
+async function checkLlmAvailability() {
+  const badge = $('#llm-badge');
+  try {
+    const { isPromptApiAvailable } = await import('../lib/tag-generator.js');
+    if (await isPromptApiAvailable()) {
+      badge.textContent = '✨ AI';
+      badge.title = 'Local AI available — tags auto-generated on-device';
+      badge.classList.add('llm-available');
+    } else {
+      badge.textContent = 'manual tags';
+      badge.title = 'Local AI unavailable — add tags manually';
+    }
+  } catch {
+    badge.textContent = 'manual tags';
+    badge.title = 'Local AI unavailable — add tags manually';
+  }
+  show(badge);
+  requestAnimationFrame(() => badge.classList.add('visible'));
+}
+
 async function showSavePanel(token, settings) {
   show(headerActions);
   hide(loginPanel);
@@ -304,6 +325,9 @@ async function showSavePanel(token, settings) {
 
   // Load topics from _index.json
   await loadTopics(token, settings.repo);
+
+  // Subtle check for local LLM availability
+  checkLlmAvailability();
 }
 
 async function loadTopics(token, repo) {
@@ -315,18 +339,17 @@ async function loadTopics(token, repo) {
     const index = JSON.parse(atob(data.content));
 
     fieldTopic.innerHTML = '';
-    const topics = index.topics || index; // support array or {topics:[]}
-    const list = Array.isArray(topics) ? topics : Object.keys(topics);
+    const items = index.items || [];
 
-    list.forEach((t) => {
-      const id = typeof t === 'string' ? t : (t.topic || t.id);
+    items.forEach((item) => {
+      const id = item.id || item.title;
       const opt = document.createElement('option');
       opt.value = id;
       opt.textContent = id;
       fieldTopic.appendChild(opt);
     });
 
-    if (list.length === 0) {
+    if (items.length === 0) {
       fieldTopic.innerHTML = '<option value="">No topics found</option>';
     }
   } catch (err) {
@@ -370,10 +393,12 @@ btnCreateTopic.addEventListener('click', async () => {
     const [owner, name] = settings.repo.split('/');
 
     const topicData = {
-      id: topicId,
+      version: 'https://jsonfeed.org/version/1.1',
+      title: topicId,
       description: topicDesc,
-      tags: topicTags,
-      sources: [],
+      language: 'en',
+      _tags: topicTags,
+      items: [],
     };
 
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(topicData, null, 2))));
@@ -436,15 +461,16 @@ btnSave.addEventListener('click', async () => {
     const existing = JSON.parse(atob(file.content));
 
     const newSource = {
+      id: url,
       url,
       title,
-      author: '',
-      date: '',
-      priority,
       summary,
       tags: [...tags],
-      addedAt: new Date().toISOString(),
-      addedBy: username,
+      date_published: new Date().toISOString(),
+      authors: [{ name: username }],
+      _source_author: '',
+      _source_date: '',
+      _priority: priority,
     };
 
     // Attach page excerpt for automated tag generation (removed by GitHub Action)
@@ -476,9 +502,9 @@ btnSave.addEventListener('click', async () => {
       }
     }
 
-    // Append to sources array
-    if (!existing.sources) existing.sources = [];
-    existing.sources.push(newSource);
+    // Append to items array
+    if (!existing.items) existing.items = [];
+    existing.items.push(newSource);
 
     const updatedContent = btoa(unescape(encodeURIComponent(JSON.stringify(existing, null, 2))));
 
@@ -490,7 +516,7 @@ btnSave.addEventListener('click', async () => {
 
     // Show success
     saveResult.className = 'success';
-    saveResult.textContent = `✅ Saved to ${topic} (${existing.sources.length} sources)`;
+    saveResult.textContent = `✅ Saved to ${topic} (${existing.items.length} sources)`;
     show(saveResult);
 
     // Clear form fields for next save

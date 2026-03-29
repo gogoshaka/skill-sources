@@ -35,11 +35,11 @@ for (const file of topicFiles) {
   const filePath = join(TOPICS_DIR, file);
   const topic = JSON.parse(readFileSync(filePath, 'utf8'));
 
-  if (!topic.sources || !Array.isArray(topic.sources)) continue;
+  if (!topic.items || !Array.isArray(topic.items)) continue;
 
   let modified = false;
 
-  for (const source of topic.sources) {
+  for (const source of topic.items) {
     if (!source._excerpt) continue;
 
     console.log(`Enriching tags for: ${source.url}`);

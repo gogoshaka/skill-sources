@@ -35,15 +35,7 @@
 
   <!-- ── Login view ──────────────────────────────────────── -->
   <section id="login-panel" class="panel hidden">
-    <div class="onboarding">
-      <p class="onboarding-intro">Save and share useful links with your team by pushing them to a <strong>public GitHub repo</strong>.</p>
-      <ul class="onboarding-steps">
-        <li>🔗 URLs you save are added to a shared source library</li>
-        <li>🤖 Tags are auto-generated to keep sources discoverable</li>
-        <li>📊 The Slideless researcher agent uses these sources to build decks</li>
-      </ul>
-      <p class="onboarding-note">You'll connect via GitHub so your contributions are attributed to you. Only the <code>public_repo</code> scope is requested.</p>
-    </div>
+    <p>Connect your GitHub account to save sources.</p>
 
     <label>
       Client ID <span class="hint">(from GitHub OAuth App settings)</span>
@@ -108,7 +100,7 @@
     </fieldset>
 
     <label>
-      Tags
+      Tags <span id="llm-badge" class="llm-badge hidden" title="Local AI available — tags auto-generated on-device">✨ AI</span>
       <div id="tags-container" class="tags-container">
         <input id="tag-input" type="text" placeholder="add tag + enter">
       </div>

@@ -68,45 +68,6 @@ header {
 
 .hidden { display: none !important; }
 
-/* ── Onboarding ────────────────────────────────────────── */
-
-.onboarding {
-  background: #ddf4ff;
-  border: 1px solid #b6e3ff;
-  border-radius: 8px;
-  padding: 12px 14px;
-  margin-bottom: 14px;
-}
-
-.onboarding-intro {
-  font-size: 13px;
-  line-height: 1.5;
-  margin-bottom: 8px;
-  color: #1f2328;
-}
-
-.onboarding-steps {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 8px;
-  font-size: 12px;
-  line-height: 1.7;
-  color: #1f2328;
-}
-
-.onboarding-note {
-  font-size: 11px;
-  color: #57606a;
-  line-height: 1.5;
-}
-
-.onboarding-note code {
-  background: #afdbf5;
-  padding: 1px 5px;
-  border-radius: 3px;
-  font-size: 11px;
-}
-
 /* ── Form elements ──────────────────────────────────────── */
 
 label {
@@ -279,6 +240,34 @@ label input[readonly] {
   color: #57606a;
 }
 .tag .remove-tag:hover { color: #cf222e; }
+
+/* ── LLM badge ──────────────────────────────────────────── */
+
+.llm-badge {
+  font-size: 10px;
+  font-weight: 500;
+  color: #656d76;
+  background: #f6f8fa;
+  border: 1px solid #d1d5da;
+  border-radius: 10px;
+  padding: 1px 7px;
+  vertical-align: middle;
+  margin-left: 4px;
+  letter-spacing: 0.02em;
+  cursor: default;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.llm-badge.llm-available {
+  color: #8250df;
+  background: #fbefff;
+  border-color: #e8d5f5;
+}
+
+.llm-badge.visible {
+  opacity: 1;
+}
 
 /* ── Status messages ────────────────────────────────────── */
 

@@ -349,16 +349,16 @@ test.describe('Skill Sources Extension', () => {
     expect(res.ok).toBeTruthy();
     const file = await res.json();
     const content = JSON.parse(Buffer.from(file.content, 'base64').toString());
-    const savedSource = content.sources.find(
+    const savedSource = content.items.find(
       (s) => s.url === 'https://example.com/playwright-test'
     );
     expect(savedSource).toBeDefined();
     expect(savedSource.title).toBe('Playwright Test Source');
-    expect(savedSource.priority).toBe('P2');
+    expect(savedSource._priority).toBe('P2');
 
     // Clean up: remove the test source from the topic file if it's not the test topic
     if (targetTopic !== TEST_TOPIC) {
-      content.sources = content.sources.filter(
+      content.items = content.items.filter(
         (s) => s.url !== 'https://example.com/playwright-test'
       );
       const updated = Buffer.from(JSON.stringify(content, null, 2)).toString('base64');

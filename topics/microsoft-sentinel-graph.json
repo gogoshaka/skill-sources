@@ -1,7 +1,9 @@
 {
-  "topic": "microsoft-sentinel-graph",
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "microsoft-sentinel-graph",
   "description": "Microsoft Sentinel Graph â graph-based security analytics, incident graph, hunting graph, custom graphs",
-  "tags": [
+  "language": "en",
+  "_tags": [
     "sentinel",
     "graph",
     "security",
@@ -9,94 +11,122 @@
     "siem",
     "defender"
   ],
-  "sources": [
+  "items": [
     {
+      "id": "https://techcommunity.microsoft.com/blog/microsoft-security-blog/introducing-microsoft-sentinel-graph-public-preview/4456368",
       "url": "https://techcommunity.microsoft.com/blog/microsoft-security-blog/introducing-microsoft-sentinel-graph-public-preview/4456368",
       "title": "Introducing Microsoft Sentinel Graph Public Preview",
-      "author": "Microsoft",
-      "date": "Mar 2026",
-      "priority": "P0",
       "summary": "Official announcement of Sentinel Graph public preview covering incident graph, hunting graph, data risk graph in Defender and Purview, and the before/after evolution from list-based to graph-based defense",
       "tags": [
         "incident-graph",
         "hunting-graph",
         "data-risk-graph"
       ],
-      "addedAt": "2026-03-26T06:35:00Z",
-      "addedBy": "gogoshaka"
+      "date_published": "2026-03-26T06:35:00Z",
+      "authors": [
+        {
+          "name": "gogoshaka"
+        }
+      ],
+      "_source_author": "Microsoft",
+      "_source_date": "Mar 2026",
+      "_priority": "P0"
     },
     {
+      "id": "https://techcommunity.microsoft.com/blog/microsoftsentinelblog/what%E2%80%99s-new-in-microsoft-sentinel-rsac-2026/4503971",
       "url": "https://techcommunity.microsoft.com/blog/microsoftsentinelblog/what%E2%80%99s-new-in-microsoft-sentinel-rsac-2026/4503971",
       "title": "What's new in Microsoft Sentinel: RSAC 2026",
-      "author": "Microsoft",
-      "date": "Mar 2026",
-      "priority": "P0",
       "summary": "Latest Sentinel announcements including Graph and agentic AI capabilities",
       "tags": [
         "agentic-ai"
       ],
-      "addedAt": "2026-03-26T06:07:00Z",
-      "addedBy": "gogoshaka"
+      "date_published": "2026-03-26T06:07:00Z",
+      "authors": [
+        {
+          "name": "gogoshaka"
+        }
+      ],
+      "_source_author": "Microsoft",
+      "_source_date": "Mar 2026",
+      "_priority": "P0"
     },
     {
+      "id": "https://www.youtube.com/watch?v=U6rh0UnXZvg",
       "url": "https://www.youtube.com/watch?v=U6rh0UnXZvg",
       "title": "Sentinel Graph Webinar",
-      "author": "Microsoft",
-      "date": "Mar 2026",
-      "priority": "P0",
       "summary": "Video webinar deep-diving into Sentinel Graph features, hunting graph, incident graph, and graph-based defense capabilities",
       "tags": [
         "incident-graph",
         "hunting-graph"
       ],
-      "addedAt": "2026-03-26T06:41:00Z",
-      "addedBy": "gogoshaka"
+      "date_published": "2026-03-26T06:41:00Z",
+      "authors": [
+        {
+          "name": "gogoshaka"
+        }
+      ],
+      "_source_author": "Microsoft",
+      "_source_date": "Mar 2026",
+      "_priority": "P0"
     },
     {
+      "id": "https://learn.microsoft.com/en-us/graph/api/resources/security-api-overview?view=graph-rest-1.0",
       "url": "https://learn.microsoft.com/en-us/graph/api/resources/security-api-overview?view=graph-rest-1.0",
       "title": "Microsoft Graph Security API Documentation",
-      "author": "Microsoft",
-      "date": "",
-      "priority": "P0",
       "summary": "API reference for Microsoft Graph Security integration",
       "tags": [
         "graph-api"
       ],
-      "addedAt": "2026-03-26T06:07:00Z",
-      "addedBy": "gogoshaka"
+      "date_published": "2026-03-26T06:07:00Z",
+      "authors": [
+        {
+          "name": "gogoshaka"
+        }
+      ],
+      "_source_author": "Microsoft",
+      "_source_date": "",
+      "_priority": "P0"
     },
     {
+      "id": "https://collabsummit.eu/blog/microsoft-sentinel-agentic-security-platform",
       "url": "https://collabsummit.eu/blog/microsoft-sentinel-agentic-security-platform",
       "title": "Introducing Microsoft Sentinel MCP and Sentinel Graph",
-      "author": "CollabSummit",
-      "date": "Oct 2025",
-      "priority": "P1",
       "summary": "Core explainer of the Sentinel Graph model and MCP server",
       "tags": [
         "mcp-server"
       ],
-      "addedAt": "2026-03-26T06:07:00Z",
-      "addedBy": "gogoshaka"
+      "date_published": "2026-03-26T06:07:00Z",
+      "authors": [
+        {
+          "name": "gogoshaka"
+        }
+      ],
+      "_source_author": "CollabSummit",
+      "_source_date": "Oct 2025",
+      "_priority": "P1"
     },
     {
+      "id": "https://undercodetesting.com/microsoft-sentinels-graph-revolution-how-defenders-are-finally-fighting-back-at-scale/",
       "url": "https://undercodetesting.com/microsoft-sentinels-graph-revolution-how-defenders-are-finally-fighting-back-at-scale/",
       "title": "Sentinel's Graph Revolution: How Defenders Are Finally Fighting Back",
-      "author": "UnderCode",
-      "date": "Oct 2025",
-      "priority": "P1",
       "summary": "Deep dive on graph-based defense and attack path visualization",
       "tags": [
         "attack-path"
       ],
-      "addedAt": "2026-03-26T06:07:00Z",
-      "addedBy": "gogoshaka"
+      "date_published": "2026-03-26T06:07:00Z",
+      "authors": [
+        {
+          "name": "gogoshaka"
+        }
+      ],
+      "_source_author": "UnderCode",
+      "_source_date": "Oct 2025",
+      "_priority": "P1"
     },
     {
+      "id": "https://windowsforum.com/threads/microsoft-sentinel-goes-agentic-ai-data-lake-graph-and-mcp-server.383130/",
       "url": "https://windowsforum.com/threads/microsoft-sentinel-goes-agentic-ai-data-lake-graph-and-mcp-server.383130/",
       "title": "Microsoft Sentinel Goes Agentic AI: Data Lake, Graph, and MCP Server",
-      "author": "WindowsForum",
-      "date": "Sep 2025",
-      "priority": "P2",
       "summary": "Overview of Sentinel Graph architecture alongside Data Lake and MCP",
       "tags": [
         "mcp-server",
@@ -108,8 +138,15 @@
         "graph-visualization",
         "data-lake"
       ],
-      "addedAt": "2026-03-26T06:07:00Z",
-      "addedBy": "gogoshaka"
+      "date_published": "2026-03-26T06:07:00Z",
+      "authors": [
+        {
+          "name": "gogoshaka"
+        }
+      ],
+      "_source_author": "WindowsForum",
+      "_source_date": "Sep 2025",
+      "_priority": "P2"
     }
   ]
 }
