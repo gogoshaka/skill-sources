@@ -54,7 +54,6 @@ const STORAGE_KEY_TOKEN     = 'gh_token';
 const STORAGE_KEY_REPO      = 'gh_repo';
 const STORAGE_KEY_USERNAME  = 'gh_username';
 const GITHUB_APP_CLIENT_ID  = 'Iv23liXEvwmMIjlGO2OM';
-const GITHUB_APP_CLIENT_SECRET = '5b84edac02577a99d12aedff9ceed7da0f60710e';
 
 async function getToken()    { return (await chrome.storage.sync.get(STORAGE_KEY_TOKEN))[STORAGE_KEY_TOKEN] || null; }
 async function getSettings() {
@@ -72,53 +71,10 @@ async function getUsername() {
 }
 
 // ---------------------------------------------------------------------------
-// PKCE OAuth web flow (primary — one-click login)
+// Auth helpers (OAuth handled by background service worker)
 // ---------------------------------------------------------------------------
 
 const EXTENSION_REDIRECT_URL = `https://${chrome.runtime.id}.chromiumapp.org/`;
-
-function generateRandomState() {
-  const arr = new Uint8Array(32);
-  crypto.getRandomValues(arr);
-  return btoa(String.fromCharCode(...arr))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-async function loginWithGitHub() {
-  const state = generateRandomState();
-
-  // Standard OAuth authorize URL — GitHub redirects to the Callback URL with code + state
-  const authUrl = `https://github.com/login/oauth/authorize?` +
-    `client_id=${GITHUB_APP_CLIENT_ID}` +
-    `&redirect_uri=${encodeURIComponent(EXTENSION_REDIRECT_URL)}` +
-    `&state=${state}`;
-
-  const redirectUrl = await chrome.identity.launchWebAuthFlow({
-    url: authUrl,
-    interactive: true,
-  });
-
-  const params = new URL(redirectUrl).searchParams;
-  if (params.get('state') !== state) throw new Error('State mismatch — possible CSRF attack');
-  const code = params.get('code');
-  if (!code) throw new Error('No authorization code received');
-
-  const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
-    method: 'POST',
-    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      client_id: GITHUB_APP_CLIENT_ID,
-      client_secret: GITHUB_APP_CLIENT_SECRET,
-      code,
-    }),
-  });
-
-  if (!tokenRes.ok) throw new Error(`Token exchange failed: ${tokenRes.status}`);
-  const tokenData = await tokenRes.json();
-  if (tokenData.error) throw new Error(tokenData.error_description || tokenData.error);
-  if (!tokenData.access_token) throw new Error('No access token in response');
-  return tokenData.access_token;
-}
 
 // ---------------------------------------------------------------------------
 // Device code flow (fallback)
@@ -241,26 +197,24 @@ function showLoginPanel(settings) {
   hide(settingsPanel);
   hide(recentPanel);
 
-  // Primary: PKCE OAuth flow
+  // Primary: OAuth flow (handled by background service worker so it survives popup close)
   btnConnect.addEventListener('click', async () => {
     hideError();
     btnConnect.disabled = true;
     btnConnect.textContent = 'Authorising…';
 
-    try {
-      const token = await loginWithGitHub();
-      await chrome.storage.sync.set({ [STORAGE_KEY_TOKEN]: token });
-      location.reload();
-    } catch (err) {
-      // User closed the popup or flow failed
-      if (err.message.includes('canceled') || err.message.includes('cancelled')) {
-        // User closed the auth window — just reset button
-      } else {
-        showError(err.message);
+    // Send to background — the popup may close while the user authorizes on GitHub.
+    // The background completes the flow and stores the token.
+    chrome.runtime.sendMessage({ type: 'LOGIN' });
+
+    // Poll for login completion (user will reopen popup after authorizing)
+    const checkInterval = setInterval(async () => {
+      const token = await getToken();
+      if (token) {
+        clearInterval(checkInterval);
+        location.reload();
       }
-      btnConnect.disabled = false;
-      btnConnect.textContent = 'Login with GitHub';
-    }
+    }, 1000);
   });
 
   // Fallback: Device code flow
@@ -330,7 +284,7 @@ $('#btn-cancel-settings').addEventListener('click', () => {
 // ---------------------------------------------------------------------------
 
 $('#btn-logout').addEventListener('click', async () => {
-  await chrome.storage.sync.remove([STORAGE_KEY_TOKEN, STORAGE_KEY_USERNAME]);
+  await chrome.runtime.sendMessage({ type: 'LOGOUT' });
   location.reload();
 });
 
