@@ -1,9 +1,6 @@
 // Popup script for the Dask extension.
 // Manages the two-state UI: login vs. save-source form.
-
-// We can't use ES module imports directly from popup scripts that reference
-// the background service worker, so we interact via chrome.runtime messaging
-// and duplicate the minimal github-api surface we need here.
+// All auth flows (PKCE OAuth + device code fallback) run inline — no background service worker.
 
 // ---------------------------------------------------------------------------
 // DOM references
@@ -23,6 +20,7 @@ const settingRepo     = $('#setting-repo');
 
 // Login
 const btnConnect       = $('#btn-connect');
+const btnDeviceCode    = $('#btn-device-code');
 const deviceCodeInfo   = $('#device-code-info');
 const verificationLink = $('#verification-link');
 const userCodeEl       = $('#user-code');
@@ -73,8 +71,97 @@ async function getUsername() {
 }
 
 // ---------------------------------------------------------------------------
-// GitHub REST helpers (used directly from popup for fetch operations)
+// PKCE helpers
 // ---------------------------------------------------------------------------
+
+function generateCodeVerifier() {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  return btoa(String.fromCharCode(...arr))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function generateCodeChallenge(verifier) {
+  const data = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+const EXTENSION_REDIRECT_URL = `https://${chrome.runtime.id}.chromiumapp.org/`;
+
+async function loginWithPkce() {
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+  const state = generateCodeVerifier(); // random CSRF token
+
+  const authUrl = `https://github.com/login/oauth/authorize?` +
+    `client_id=${GITHUB_APP_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(EXTENSION_REDIRECT_URL)}` +
+    `&scope=public_repo` +
+    `&state=${state}` +
+    `&code_challenge=${codeChallenge}` +
+    `&code_challenge_method=S256`;
+
+  const redirectUrl = await chrome.identity.launchWebAuthFlow({
+    url: authUrl,
+    interactive: true,
+  });
+
+  const params = new URL(redirectUrl).searchParams;
+  if (params.get('state') !== state) throw new Error('State mismatch — possible CSRF attack');
+  const code = params.get('code');
+  if (!code) throw new Error('No authorization code received');
+
+  // Exchange code for token (no client_secret needed with PKCE)
+  const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
+    method: 'POST',
+    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id: GITHUB_APP_CLIENT_ID,
+      code,
+      redirect_uri: EXTENSION_REDIRECT_URL,
+      code_verifier: codeVerifier,
+    }),
+  });
+
+  if (!tokenRes.ok) throw new Error(`Token exchange failed: ${tokenRes.status}`);
+  const tokenData = await tokenRes.json();
+  if (tokenData.error) throw new Error(tokenData.error_description || tokenData.error);
+  if (!tokenData.access_token) throw new Error('No access token in response');
+  return tokenData.access_token;
+}
+
+// ---------------------------------------------------------------------------
+// Device code flow helpers (fallback — runs inline in popup)
+// ---------------------------------------------------------------------------
+
+async function startDeviceFlow() {
+  const res = await fetch('https://github.com/login/device/code', {
+    method: 'POST',
+    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_id: GITHUB_APP_CLIENT_ID, scope: 'public_repo' }),
+  });
+  if (!res.ok) throw new Error(`Device flow request failed: ${res.status}`);
+  return res.json();
+}
+
+async function pollForToken(deviceCode) {
+  const res = await fetch('https://github.com/login/oauth/access_token', {
+    method: 'POST',
+    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id: GITHUB_APP_CLIENT_ID,
+      device_code: deviceCode,
+      grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+    }),
+  });
+  if (!res.ok) throw new Error(`Token poll failed: ${res.status}`);
+  const data = await res.json();
+  if (data.access_token) return data.access_token;
+  if (data.error === 'authorization_pending' || data.error === 'slow_down') return null;
+  throw new Error(data.error_description || data.error || 'Unknown auth error');
+}
 
 async function githubGet(path, token) {
   const res = await fetch(`https://api.github.com${path}`, {
@@ -154,18 +241,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-// Listen for auth success from the background service worker
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === 'AUTH_SUCCESS') {
-    // Reload popup to switch to save panel
-    location.reload();
-  }
-  if (msg.type === 'AUTH_ERROR') {
-    authStatusEl.textContent = `Error: ${msg.error}`;
-    authStatusEl.className = 'error';
-  }
-});
-
 // ---------------------------------------------------------------------------
 // Login panel
 // ---------------------------------------------------------------------------
@@ -178,36 +253,64 @@ function showLoginPanel(settings) {
   hide(settingsPanel);
   hide(recentPanel);
 
-  // Auto-check if auth already completed (user reopened popup after authorizing)
-  const authCheckInterval = setInterval(async () => {
-    const token = await getToken();
-    if (token) {
-      clearInterval(authCheckInterval);
-      location.reload();
-    }
-  }, 2000);
-
+  // Primary: PKCE OAuth flow
   btnConnect.addEventListener('click', async () => {
     hideError();
-
     btnConnect.disabled = true;
-    btnConnect.textContent = 'Starting…';
+    btnConnect.textContent = 'Authorising…';
 
     try {
-      const resp = await chrome.runtime.sendMessage({ type: 'START_AUTH', clientId: GITHUB_APP_CLIENT_ID });
-      if (resp.error) throw new Error(resp.error);
+      const token = await loginWithPkce();
+      await chrome.storage.sync.set({ [STORAGE_KEY_TOKEN]: token });
+      location.reload();
+    } catch (err) {
+      // User closed the popup or flow failed
+      if (err.message.includes('canceled') || err.message.includes('cancelled')) {
+        // User closed the auth window — just reset button
+      } else {
+        showError(err.message);
+      }
+      btnConnect.disabled = false;
+      btnConnect.textContent = 'Login with GitHub';
+    }
+  });
 
-      userCodeEl.textContent = resp.userCode;
-      verificationLink.href = resp.verificationUri;
-      verificationLink.textContent = resp.verificationUri;
+  // Fallback: Device code flow
+  let devicePollInterval = null;
+
+  btnDeviceCode.addEventListener('click', async () => {
+    hideError();
+    btnDeviceCode.disabled = true;
+
+    try {
+      const flow = await startDeviceFlow();
+
+      userCodeEl.textContent = flow.user_code;
+      verificationLink.href = flow.verification_uri;
+      verificationLink.textContent = flow.verification_uri;
       show(deviceCodeInfo);
       authStatusEl.textContent = 'Waiting for authorisation…';
       authStatusEl.className = 'status';
-      btnConnect.textContent = 'Waiting…';
+
+      // Poll inline with setInterval
+      const interval = (flow.interval || 5) * 1000;
+      devicePollInterval = setInterval(async () => {
+        try {
+          const token = await pollForToken(flow.device_code);
+          if (token) {
+            clearInterval(devicePollInterval);
+            await chrome.storage.sync.set({ [STORAGE_KEY_TOKEN]: token });
+            location.reload();
+          }
+        } catch (err) {
+          clearInterval(devicePollInterval);
+          authStatusEl.textContent = `Error: ${err.message}`;
+          authStatusEl.className = 'status error';
+        }
+      }, interval);
     } catch (err) {
       showError(err.message);
-      btnConnect.disabled = false;
-      btnConnect.textContent = 'Login with GitHub';
+      btnDeviceCode.disabled = false;
     }
   });
 }
@@ -239,7 +342,7 @@ $('#btn-cancel-settings').addEventListener('click', () => {
 // ---------------------------------------------------------------------------
 
 $('#btn-logout').addEventListener('click', async () => {
-  await chrome.runtime.sendMessage({ type: 'LOGOUT' });
+  await chrome.storage.sync.remove([STORAGE_KEY_TOKEN, STORAGE_KEY_USERNAME]);
   location.reload();
 });
 
@@ -280,8 +383,14 @@ async function showSavePanel(token, settings) {
     }
   } catch { /* activeTab might not be available yet */ }
 
-  // Ensure we have a cached username (fires GET /user on first call)
-  chrome.runtime.sendMessage({ type: 'GET_USERNAME' }).catch(() => {});
+  // Ensure we have a cached username
+  const cachedUser = await chrome.storage.sync.get(STORAGE_KEY_USERNAME);
+  if (!cachedUser[STORAGE_KEY_USERNAME]) {
+    try {
+      const user = await githubGet('/user', token);
+      await chrome.storage.sync.set({ [STORAGE_KEY_USERNAME]: user.login });
+    } catch { /* non-critical */ }
+  }
 
   // Load topics from _index.json
   const topicIds = await loadTopics(token, settings.repo);

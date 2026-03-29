@@ -173,6 +173,13 @@ label input[readonly] {
   font-weight: 500;
 }
 
+.login-alt {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #656d76;
+}
+
 .full-width { width: 100%; }
 
 .actions {
