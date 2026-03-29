@@ -1,6 +1,6 @@
 {
   "topic": "microsoft-sentinel-graph",
-  "description": "Microsoft Sentinel Graph \u2014 graph-based security analytics, incident graph, hunting graph, custom graphs",
+  "description": "Microsoft Sentinel Graph — graph-based security analytics, incident graph, hunting graph, custom graphs",
   "tags": [
     "sentinel",
     "graph",
@@ -103,6 +103,19 @@
       ],
       "addedAt": "2026-03-26T06:07:00Z",
       "addedBy": "gogoshaka"
+    },
+    {
+      "url": "https://example.com/playwright-test",
+      "title": "Playwright Test Source",
+      "author": "",
+      "date": "",
+      "priority": "P2",
+      "summary": "E2E test source created by Playwright",
+      "tags": [
+        "e2e-test"
+      ],
+      "addedAt": "2026-03-29T11:34:21.154Z",
+      "addedBy": "playwright-test"
     }
   ]
 }
