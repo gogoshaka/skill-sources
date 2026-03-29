@@ -86,10 +86,6 @@
             "type": "string",
             "enum": ["P0", "P1", "P2"],
             "description": "Source reliability: P0=official, P1=reputable third-party, P2=community (extension)"
-          },
-          "_excerpt": {
-            "type": "string",
-            "description": "Temporary page excerpt for server-side tag generation; removed after processing (extension)"
           }
         }
       }

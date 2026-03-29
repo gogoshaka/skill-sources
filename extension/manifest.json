@@ -6,7 +6,8 @@
   "permissions": ["activeTab", "storage", "scripting", "alarms"],
   "host_permissions": [
     "https://api.github.com/*",
-    "https://github.com/*"
+    "https://github.com/*",
+    "https://models.inference.ai.azure.com/*"
   ],
   "action": {
     "default_popup": "popup/popup.html",

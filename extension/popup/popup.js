@@ -479,7 +479,7 @@ btnSave.addEventListener('click', async () => {
       _priority: priority,
     };
 
-    // Attach page excerpt for automated tag generation (removed by GitHub Action)
+    // Auto-generate tags from page content (never stored in git)
     if (pageExcerpt) {
       const excerpt = [
         pageExcerpt.description,
@@ -489,21 +489,20 @@ btnSave.addEventListener('click', async () => {
       ].filter(Boolean).join('\n').slice(0, 2000);
 
       if (excerpt) {
-        // Try client-side tag generation via Prompt API (Gemini Nano)
-        let localTags = null;
+        let autoTags = null;
         try {
-          const { generateTagsLocally } = await import('../lib/tag-generator.js');
-          localTags = await generateTagsLocally(title, excerpt);
-        } catch { /* module not available or failed */ }
+          const { generateTagsLocally, generateTagsViaGitHubModels } = await import('../lib/tag-generator.js');
+          // 1. Try local LLM (on-device)
+          autoTags = await generateTagsLocally(title, excerpt);
+          // 2. Fallback: GitHub Models API (cloud)
+          if (!autoTags) {
+            autoTags = await generateTagsViaGitHubModels(title, excerpt, token);
+          }
+        } catch { /* tag generation unavailable */ }
 
-        if (localTags && localTags.length > 0) {
-          // Merge local tags with manual tags (deduped)
-          const merged = [...new Set([...newSource.tags, ...localTags])].slice(0, 15);
+        if (autoTags && autoTags.length > 0) {
+          const merged = [...new Set([...newSource.tags, ...autoTags])].slice(0, 15);
           newSource.tags = merged;
-          // No _excerpt needed — tags already generated client-side
-        } else {
-          // Fallback: attach excerpt for GitHub Action to process
-          newSource._excerpt = excerpt;
         }
       }
     }
