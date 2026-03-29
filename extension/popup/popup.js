@@ -460,6 +460,12 @@ btnSave.addEventListener('click', async () => {
     const file = await githubGet(path, token);
     const existing = JSON.parse(atob(file.content));
 
+    // Reject duplicate URLs
+    if (existing.items && existing.items.some((item) => item.url === url)) {
+      showError('This URL already exists in this topic.');
+      return;
+    }
+
     const newSource = {
       id: url,
       url,

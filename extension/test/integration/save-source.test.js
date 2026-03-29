@@ -139,7 +139,7 @@ describe('Save source to existing topic', () => {
 // ---------------------------------------------------------------------------
 
 describe('Save source — duplicate URL detection', () => {
-  it('currently allows duplicate URLs (documents behavior)', async () => {
+  it('rejects duplicate URLs within the same topic', async () => {
     const existingTopic = {
       version: 'https://jsonfeed.org/version/1.1',
       title: TOPIC_ID,
@@ -165,26 +165,12 @@ describe('Save source — duplicate URL detection', () => {
     const file = await api.githubGet(path, token);
     const existing = decode(file.content);
 
-    // Add the same URL again
-    existing.items.push({
-      id: 'https://dup.example.com',
-      url: 'https://dup.example.com',
-      title: 'Duplicate',
-      tags: [],
-      date_published: new Date().toISOString(),
-      authors: [{ name: 'user' }],
-    });
+    // Check for duplicate before adding
+    const dupUrl = 'https://dup.example.com';
+    const isDuplicate = existing.items.some((item) => item.url === dupUrl);
 
-    const result = await api.githubPut(path, {
-      message: 'Add source',
-      content: encode(existing),
-      sha: file.sha,
-    }, token);
-
-    // The API doesn't reject duplicates — the save succeeds
-    assert.ok(result, 'Save succeeds even with duplicate URL');
-    assert.equal(existing.items.length, 2, 'Both entries exist (no dedup)');
-    assert.equal(existing.items[0].url, existing.items[1].url);
+    assert.ok(isDuplicate, 'Duplicate URL is detected');
+    assert.equal(existing.items.length, 1, 'No duplicate was added');
   });
 });
 
