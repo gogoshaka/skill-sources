@@ -1,5 +1,5 @@
 // Service worker for the Skill Sources extension.
-// Handles long-running auth polling so the popup can close without losing state.
+// Handles auth polling using chrome.alarms (survives service worker suspension).
 
 import {
   startDeviceFlow,
@@ -12,30 +12,45 @@ import {
   getUsername,
 } from './lib/github-api.js';
 
-// Listen for messages from the popup.
+// Pending auth state — persisted in chrome.storage.session so it survives
+// service worker restarts. Keys: clientId, deviceCode, interval, expiresAt.
+const AUTH_STATE_KEY = '_auth_pending';
+const ALARM_NAME = 'auth-poll';
+
+// ---------------------------------------------------------------------------
+// Message handler (popup → service worker)
+// ---------------------------------------------------------------------------
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   handleMessage(message)
     .then(sendResponse)
     .catch((err) => sendResponse({ error: err.message }));
-
-  // Return true to indicate we will respond asynchronously.
   return true;
 });
 
 async function handleMessage(msg) {
   switch (msg.type) {
-    // ------------------------------------------------------------------
-    // AUTH: kick off the device flow and begin background polling
-    // ------------------------------------------------------------------
     case 'START_AUTH': {
       const { clientId } = msg;
       if (!clientId) throw new Error('Client ID is required');
 
       const flow = await startDeviceFlow(clientId);
 
-      // Start polling in the background — the popup reads the result
-      // from chrome.storage when it reopens.
-      pollInBackground(clientId, flow.device_code, flow.interval || 5);
+      // Persist auth state so polling survives service worker restarts
+      const authState = {
+        clientId,
+        deviceCode: flow.device_code,
+        interval: flow.interval || 5,
+        expiresAt: Date.now() + (flow.expires_in || 900) * 1000,
+      };
+      await chrome.storage.session.set({ [AUTH_STATE_KEY]: authState });
+
+      // Start polling via alarms (interval in minutes, minimum 0.5 = 30s)
+      // We use a short period and check auth state each time
+      await chrome.alarms.create(ALARM_NAME, {
+        delayInMinutes: authState.interval / 60,
+        periodInMinutes: Math.max(authState.interval / 60, 0.5),
+      });
 
       return {
         userCode: flow.user_code,
@@ -48,6 +63,7 @@ async function handleMessage(msg) {
 
     case 'LOGOUT':
       await clearToken();
+      await stopPolling();
       return { ok: true };
 
     case 'GET_USERNAME':
@@ -58,36 +74,51 @@ async function handleMessage(msg) {
   }
 }
 
-// ------------------------------------------------------------------
-// Background poll loop — survives popup close
-// ------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Alarm-based poll (survives service worker suspension)
+// ---------------------------------------------------------------------------
 
-async function pollInBackground(clientId, deviceCode, interval) {
-  const maxAttempts = 120; // ~10 min with 5s interval
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== ALARM_NAME) return;
 
-  for (let i = 0; i < maxAttempts; i++) {
-    await sleep(interval * 1000);
+  const data = await chrome.storage.session.get(AUTH_STATE_KEY);
+  const authState = data[AUTH_STATE_KEY];
 
-    try {
-      const token = await pollForToken(clientId, deviceCode, interval);
-      if (token) {
-        await storeToken(token);
-        // Notify any open popup that auth succeeded
-        chrome.runtime.sendMessage({ type: 'AUTH_SUCCESS' }).catch(() => {
-          // Popup might not be open — that's fine.
-        });
-        return;
-      }
-    } catch (err) {
-      // Fatal errors (expired, denied) — stop polling
-      chrome.runtime.sendMessage({ type: 'AUTH_ERROR', error: err.message }).catch(() => {});
-      return;
-    }
+  if (!authState) {
+    await stopPolling();
+    return;
   }
 
-  chrome.runtime.sendMessage({ type: 'AUTH_ERROR', error: 'Authorisation timed out' }).catch(() => {});
+  // Check if expired
+  if (Date.now() > authState.expiresAt) {
+    await stopPolling();
+    notifyPopup('AUTH_ERROR', 'Authorisation timed out — please try again.');
+    return;
+  }
+
+  try {
+    const token = await pollForToken(authState.clientId, authState.deviceCode, authState.interval);
+    if (token) {
+      await storeToken(token);
+      await stopPolling();
+      notifyPopup('AUTH_SUCCESS');
+    }
+    // null means authorization_pending — alarm fires again automatically
+  } catch (err) {
+    // Fatal: expired_token, access_denied, etc.
+    await stopPolling();
+    notifyPopup('AUTH_ERROR', err.message);
+  }
+});
+
+async function stopPolling() {
+  await chrome.alarms.clear(ALARM_NAME);
+  await chrome.storage.session.remove(AUTH_STATE_KEY);
 }
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function notifyPopup(type, error) {
+  const msg = error ? { type, error } : { type };
+  chrome.runtime.sendMessage(msg).catch(() => {
+    // Popup might not be open — that's fine
+  });
 }
