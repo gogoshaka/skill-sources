@@ -83,22 +83,19 @@ describe('isAuthenticated', () => {
 describe('getSettings', () => {
   it('returns defaults when nothing stored', async () => {
     const s = await api.getSettings();
-    assert.equal(s.clientId, '');
     assert.equal(s.repo, 'gogoshaka/dask');
   });
 
   it('returns stored values', async () => {
-    await api.saveSettings({ clientId: 'Iv1.abc', repo: 'user/repo' });
+    await api.saveSettings({ repo: 'user/repo' });
     const s = await api.getSettings();
-    assert.equal(s.clientId, 'Iv1.abc');
     assert.equal(s.repo, 'user/repo');
   });
 });
 
 describe('saveSettings', () => {
-  it('persists clientId and repo', async () => {
-    await api.saveSettings({ clientId: 'Iv1.xyz', repo: 'org/repo' });
-    assert.equal(mockState.store['gh_client_id'], 'Iv1.xyz');
+  it('persists repo', async () => {
+    await api.saveSettings({ repo: 'org/repo' });
     assert.equal(mockState.store['gh_repo'], 'org/repo');
   });
 });

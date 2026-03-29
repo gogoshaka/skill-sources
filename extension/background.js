@@ -58,55 +58,6 @@ async function handleMessage(msg) {
       };
     }
 
-    case 'START_OAUTH': {
-      const { clientId } = msg;
-      if (!clientId) throw new Error('Client ID is required');
-
-      // Generate random state for CSRF protection
-      const state = crypto.randomUUID();
-      await chrome.storage.session.set({ _oauth_state: state, _oauth_client_id: clientId });
-
-      const redirectUrl = chrome.identity.getRedirectURL();
-      const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUrl)}&scope=repo&state=${state}`;
-
-      const responseUrl = await chrome.identity.launchWebAuthFlow({
-        url: authUrl,
-        interactive: true,
-      });
-
-      // Extract code from the redirect URL
-      const url = new URL(responseUrl);
-      const code = url.searchParams.get('code');
-      const returnedState = url.searchParams.get('state');
-
-      if (returnedState !== state) throw new Error('OAuth state mismatch');
-      if (!code) throw new Error('No authorization code received');
-
-      // Exchange code for token via GitHub (requires a server or proxy)
-      // For GitHub OAuth Apps, the code exchange needs client_secret,
-      // but for public clients we use the device flow token endpoint with grant_type=authorization_code
-      const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          client_id: clientId,
-          code,
-          redirect_uri: redirectUrl,
-        }),
-      });
-
-      const tokenData = await tokenRes.json();
-      if (tokenData.error) throw new Error(tokenData.error_description || tokenData.error);
-      if (!tokenData.access_token) throw new Error('No access token received');
-
-      await storeToken(tokenData.access_token);
-      notifyPopup('AUTH_SUCCESS');
-      return { ok: true };
-    }
-
     case 'CHECK_AUTH':
       return { authenticated: await isAuthenticated() };
 

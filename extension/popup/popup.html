@@ -20,10 +20,6 @@
   <section id="settings-panel" class="panel hidden">
     <h2>Settings</h2>
     <label>
-      GitHub OAuth Client ID
-      <input id="setting-client-id" type="text" placeholder="Ov23li…">
-    </label>
-    <label>
       Source repo (owner/name)
       <input id="setting-repo" type="text" placeholder="gogoshaka/dask">
     </label>
@@ -35,22 +31,14 @@
 
   <!-- ── Login view ──────────────────────────────────────── -->
   <section id="login-panel" class="panel hidden">
-    <p>Connect your GitHub account to save sources.</p>
+    <p>Connect your GitHub account to start saving links.</p>
 
-    <label>
-      Client ID <span class="hint">(from GitHub OAuth App settings)</span>
-      <input id="login-client-id" type="text" placeholder="Ov23li…">
-    </label>
-
-    <div class="login-options">
-      <button id="btn-oauth-login" class="btn-primary full-width">Login with GitHub</button>
-      <button id="btn-device-login" class="link-btn">Use device code instead…</button>
-    </div>
+    <button id="btn-connect" class="btn-primary full-width">Login with GitHub</button>
 
     <div id="device-code-info" class="hidden">
-      <div class="divider">After clicking</div>
+      <div class="divider">Enter this code on GitHub</div>
       <p>Go to: <a id="verification-link" href="#" target="_blank">github.com/login/device</a></p>
-      <p class="code-display">Enter code: <strong id="user-code"></strong></p>
+      <p class="code-display">Code: <strong id="user-code"></strong></p>
       <p id="auth-status" class="status">Waiting for authorisation…</p>
     </div>
   </section>

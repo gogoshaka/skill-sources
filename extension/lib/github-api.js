@@ -2,7 +2,6 @@
 // Handles OAuth Device Flow authentication and repo interactions.
 
 const STORAGE_KEY_TOKEN = 'gh_token';
-const STORAGE_KEY_CLIENT_ID = 'gh_client_id';
 const STORAGE_KEY_REPO = 'gh_repo';
 const STORAGE_KEY_USERNAME = 'gh_username';
 
@@ -33,16 +32,14 @@ export async function isAuthenticated() {
 // ---------------------------------------------------------------------------
 
 export async function getSettings() {
-  const data = await chrome.storage.sync.get([STORAGE_KEY_CLIENT_ID, STORAGE_KEY_REPO]);
+  const data = await chrome.storage.sync.get([STORAGE_KEY_REPO]);
   return {
-    clientId: data[STORAGE_KEY_CLIENT_ID] || '',
     repo: data[STORAGE_KEY_REPO] || 'gogoshaka/dask',
   };
 }
 
-export async function saveSettings({ clientId, repo }) {
+export async function saveSettings({ repo }) {
   return chrome.storage.sync.set({
-    [STORAGE_KEY_CLIENT_ID]: clientId,
     [STORAGE_KEY_REPO]: repo,
   });
 }

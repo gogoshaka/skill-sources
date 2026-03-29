@@ -19,13 +19,10 @@ const loadingEl     = $('#loading');
 const errorEl       = $('#error-msg');
 
 // Settings
-const settingClientId = $('#setting-client-id');
 const settingRepo     = $('#setting-repo');
 
 // Login
-const loginClientId    = $('#login-client-id');
-const btnOauthLogin    = $('#btn-oauth-login');
-const btnDeviceLogin   = $('#btn-device-login');
+const btnConnect       = $('#btn-connect');
 const deviceCodeInfo   = $('#device-code-info');
 const verificationLink = $('#verification-link');
 const userCodeEl       = $('#user-code');
@@ -56,20 +53,20 @@ const btnCancelTopic = $('#btn-cancel-topic');
 // ---------------------------------------------------------------------------
 
 const STORAGE_KEY_TOKEN     = 'gh_token';
-const STORAGE_KEY_CLIENT_ID = 'gh_client_id';
 const STORAGE_KEY_REPO      = 'gh_repo';
 const STORAGE_KEY_USERNAME  = 'gh_username';
+const GITHUB_APP_CLIENT_ID  = 'Iv23liXEvwmMIjlGO2OM';
 
 async function getToken()    { return (await chrome.storage.sync.get(STORAGE_KEY_TOKEN))[STORAGE_KEY_TOKEN] || null; }
 async function getSettings() {
-  const d = await chrome.storage.sync.get([STORAGE_KEY_CLIENT_ID, STORAGE_KEY_REPO]);
+  const d = await chrome.storage.sync.get([STORAGE_KEY_REPO]);
   return {
-    clientId: d[STORAGE_KEY_CLIENT_ID] || '',
+    clientId: GITHUB_APP_CLIENT_ID,
     repo:     d[STORAGE_KEY_REPO]      || 'gogoshaka/dask',
   };
 }
-async function saveSettingsToStorage(clientId, repo) {
-  return chrome.storage.sync.set({ [STORAGE_KEY_CLIENT_ID]: clientId, [STORAGE_KEY_REPO]: repo });
+async function saveSettingsToStorage(repo) {
+  return chrome.storage.sync.set({ [STORAGE_KEY_REPO]: repo });
 }
 async function getUsername() {
   return (await chrome.storage.sync.get(STORAGE_KEY_USERNAME))[STORAGE_KEY_USERNAME] || null;
@@ -181,8 +178,6 @@ function showLoginPanel(settings) {
   hide(settingsPanel);
   hide(recentPanel);
 
-  loginClientId.value = settings.clientId;
-
   // Auto-check if auth already completed (user reopened popup after authorizing)
   const authCheckInterval = setInterval(async () => {
     const token = await getToken();
@@ -192,58 +187,14 @@ function showLoginPanel(settings) {
     }
   }, 2000);
 
-  // Standard OAuth web flow login
-  btnOauthLogin.addEventListener('click', async () => {
+  btnConnect.addEventListener('click', async () => {
     hideError();
-    const clientId = loginClientId.value.trim();
-    if (!clientId) { showError('Please enter a GitHub OAuth Client ID.'); return; }
 
-    await saveSettingsToStorage(clientId, settings.repo);
-
-    btnOauthLogin.disabled = true;
-    btnOauthLogin.textContent = 'Logging in…';
+    btnConnect.disabled = true;
+    btnConnect.textContent = 'Starting…';
 
     try {
-      const resp = await chrome.runtime.sendMessage({ type: 'START_OAUTH', clientId });
-      if (resp.error) throw new Error(resp.error);
-      // OAuth flow opens a browser tab; token will be stored by background.js
-      // The auto-check interval above will detect the token and reload
-      authStatusEl.textContent = 'Complete the login in the browser tab…';
-      authStatusEl.className = 'status';
-      show(deviceCodeInfo);
-    } catch (err) {
-      showError(err.message);
-      btnOauthLogin.disabled = false;
-      btnOauthLogin.textContent = 'Login with GitHub';
-    }
-  });
-
-  // Device code flow (fallback for environments without redirect support)
-  btnDeviceLogin.addEventListener('click', () => {
-    hide(btnOauthLogin.parentElement.querySelector('#btn-oauth-login'));
-    hide(btnDeviceLogin);
-    showDeviceCodeFlow(settings);
-  });
-}
-
-function showDeviceCodeFlow(settings) {
-  const btnStart = document.createElement('button');
-  btnStart.className = 'btn-primary full-width';
-  btnStart.textContent = 'Start Device Code Flow';
-  btnDeviceLogin.parentElement.appendChild(btnStart);
-
-  btnStart.addEventListener('click', async () => {
-    hideError();
-    const clientId = loginClientId.value.trim();
-    if (!clientId) { showError('Please enter a GitHub OAuth Client ID.'); return; }
-
-    await saveSettingsToStorage(clientId, settings.repo);
-
-    btnStart.disabled = true;
-    btnStart.textContent = 'Starting…';
-
-    try {
-      const resp = await chrome.runtime.sendMessage({ type: 'START_AUTH', clientId });
+      const resp = await chrome.runtime.sendMessage({ type: 'START_AUTH', clientId: GITHUB_APP_CLIENT_ID });
       if (resp.error) throw new Error(resp.error);
 
       userCodeEl.textContent = resp.userCode;
@@ -252,10 +203,11 @@ function showDeviceCodeFlow(settings) {
       show(deviceCodeInfo);
       authStatusEl.textContent = 'Waiting for authorisation…';
       authStatusEl.className = 'status';
+      btnConnect.textContent = 'Waiting…';
     } catch (err) {
       showError(err.message);
-      btnStart.disabled = false;
-      btnStart.textContent = 'Start Device Code Flow';
+      btnConnect.disabled = false;
+      btnConnect.textContent = 'Login with GitHub';
     }
   });
 }
@@ -266,14 +218,13 @@ function showDeviceCodeFlow(settings) {
 
 $('#btn-settings').addEventListener('click', async () => {
   const settings = await getSettings();
-  settingClientId.value = settings.clientId;
   settingRepo.value     = settings.repo;
   show(settingsPanel);
   hide(savePanel);
 });
 
 $('#btn-save-settings').addEventListener('click', async () => {
-  await saveSettingsToStorage(settingClientId.value.trim(), settingRepo.value.trim());
+  await saveSettingsToStorage(settingRepo.value.trim());
   hide(settingsPanel);
   show(savePanel);
 });

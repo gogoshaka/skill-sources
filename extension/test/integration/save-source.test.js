@@ -85,7 +85,7 @@ describe('Save source to existing topic', () => {
 
     // Store token and settings
     await api.storeToken(TOKEN);
-    await api.saveSettings({ clientId: 'cid', repo: REPO });
+    await api.saveSettings({ repo: REPO });
 
     const token = await api.getToken();
     const settings = await api.getSettings();
@@ -157,7 +157,7 @@ describe('Save source — duplicate URL detection', () => {
     };
 
     await api.storeToken(TOKEN);
-    await api.saveSettings({ clientId: 'cid', repo: REPO });
+    await api.saveSettings({ repo: REPO });
 
     const token = await api.getToken();
     const path = `/repos/testowner/testrepo/contents/topics/${TOPIC_ID}.json`;
@@ -206,7 +206,7 @@ describe('Create new topic then save', () => {
     };
 
     await api.storeToken(TOKEN);
-    await api.saveSettings({ clientId: 'cid', repo: REPO });
+    await api.saveSettings({ repo: REPO });
 
     const token = await api.getToken();
     const basePath = '/repos/testowner/testrepo/contents/topics/new-topic.json';
