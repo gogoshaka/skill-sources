@@ -317,20 +317,39 @@ label input[readonly] {
   font-size: 13px;
 }
 
-/* ── Misc ───────────────────────────────────────────────── */
+/* ── Tab bar ────────────────────────────────────────────── */
 
-.recent-section {
-  margin-top: 14px;
-  border-top: 1px solid #d1d5da;
-  padding-top: 10px;
+.tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid #d1d5da;
+  margin-bottom: 12px;
 }
 
-.recent-header {
-  font-size: 12px;
-  font-weight: 600;
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 0;
+  font-size: 13px;
+  font-weight: 500;
   color: #57606a;
-  margin-bottom: 8px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
 }
+
+.tab:hover {
+  color: #1f2328;
+}
+
+.tab.active {
+  color: #1f2328;
+  border-bottom-color: #0969da;
+  font-weight: 600;
+}
+
+/* ── Recent links ──────────────────────────────────────── */
 
 .recent-list {
   display: flex;

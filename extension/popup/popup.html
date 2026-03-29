@@ -52,6 +52,12 @@
     </div>
   </section>
 
+  <!-- ── Tabs (visible when logged in) ─────────────────── -->
+  <nav id="tab-bar" class="tab-bar hidden">
+    <button class="tab active" data-tab="save-panel">Save</button>
+    <button class="tab" data-tab="recent-panel">Recent</button>
+  </nav>
+
   <!-- ── Save-source form ────────────────────────────────── -->
   <section id="save-panel" class="panel hidden">
     <label>
@@ -122,13 +128,12 @@
     <button id="btn-save" class="btn-primary full-width">Save Source</button>
 
     <div id="save-result" class="hidden"></div>
+  </section>
 
-    <!-- Recent links -->
-    <div id="recent-section" class="recent-section hidden">
-      <h3 class="recent-header">Recent links</h3>
-      <div id="recent-list" class="recent-list">
-        <span class="ai-status loading">Loading…</span>
-      </div>
+  <!-- ── Recent links panel ──────────────────────────────── -->
+  <section id="recent-panel" class="panel hidden">
+    <div id="recent-list" class="recent-list">
+      <span class="ai-status loading">Loading…</span>
     </div>
   </section>
 

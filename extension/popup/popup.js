@@ -41,8 +41,9 @@ const btnSave      = $('#btn-save');
 const saveResult   = $('#save-result');
 const btnGenerate  = $('#btn-generate');
 const aiStatus     = $('#ai-status');
-const recentSection = $('#recent-section');
+const recentPanel   = $('#recent-panel');
 const recentList    = $('#recent-list');
+const tabBar        = $('#tab-bar');
 
 // New topic
 const btnNewTopic    = $('#btn-new-topic');
@@ -165,6 +166,24 @@ function escapeHtml(str) {
 }
 
 // ---------------------------------------------------------------------------
+// Tab switching
+// ---------------------------------------------------------------------------
+
+tabBar.addEventListener('click', (e) => {
+  const btn = e.target.closest('.tab');
+  if (!btn) return;
+
+  const targetId = btn.dataset.tab;
+  tabBar.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+  btn.classList.add('active');
+
+  // Toggle panels
+  [savePanel, recentPanel].forEach((p) => hide(p));
+  const target = document.getElementById(targetId);
+  if (target) show(target);
+});
+
+// ---------------------------------------------------------------------------
 // Init: decide which panel to show
 // ---------------------------------------------------------------------------
 
@@ -277,9 +296,11 @@ let pageExcerpt = null;
 
 async function showSavePanel(token, settings) {
   show(headerActions);
+  show(tabBar);
   hide(loginPanel);
   show(savePanel);
   hide(settingsPanel);
+  hide(recentPanel);
 
   // Pre-fill URL and title from the active tab
   try {
@@ -373,7 +394,6 @@ function relativeTime(dateStr) {
 async function loadRecentLinks(token, repo, topicIds) {
   if (!topicIds.length) return;
 
-  show(recentSection);
   recentList.innerHTML = '<span class="ai-status loading">Loading…</span>';
 
   try {
