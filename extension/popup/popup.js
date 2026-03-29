@@ -91,15 +91,17 @@ async function generateCodeChallenge(verifier) {
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+const GITHUB_APP_SLUG = 'distributed-ai-specific-knowledge';
+
 async function loginWithPkce() {
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = await generateCodeChallenge(codeVerifier);
   const state = generateCodeVerifier();
 
-  const authUrl = `https://github.com/login/oauth/authorize?` +
-    `client_id=${GITHUB_APP_CLIENT_ID}` +
+  // Combined install + authorize URL — user picks repos and authorizes in one step
+  const authUrl = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new?` +
+    `state=${state}` +
     `&redirect_uri=${encodeURIComponent(EXTENSION_REDIRECT_URL)}` +
-    `&state=${state}` +
     `&code_challenge=${codeChallenge}` +
     `&code_challenge_method=S256`;
 
