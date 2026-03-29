@@ -198,6 +198,54 @@ label input[readonly] {
 
 /* ── Tags ───────────────────────────────────────────────── */
 
+.ai-section {
+  border: 1px solid #d1d5da;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #fafbfc;
+}
+
+.ai-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ai-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8250df;
+}
+
+.ai-status {
+  font-size: 11px;
+  color: #57606a;
+  font-style: italic;
+}
+
+.ai-status.error {
+  color: #cf222e;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 11px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.ai-status.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.ai-section label {
+  margin-bottom: 6px;
+}
+
 .tags-container {
   display: flex;
   flex-wrap: wrap;

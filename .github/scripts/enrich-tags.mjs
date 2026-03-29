@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 
 const TOPICS_DIR = 'topics';
-const MODEL = 'gpt-4o-mini';
+const MODEL = 'gpt-5-mini';
 const API_URL = 'https://models.inference.ai.azure.com/chat/completions';
 const TOKEN = process.env.GITHUB_TOKEN;
 

@@ -39,6 +39,8 @@ const tagInput     = $('#tag-input');
 const tagsContainer= $('#tags-container');
 const btnSave      = $('#btn-save');
 const saveResult   = $('#save-result');
+const btnGenerate  = $('#btn-generate');
+const aiStatus     = $('#ai-status');
 
 // New topic
 const btnNewTopic    = $('#btn-new-topic');
@@ -304,6 +306,12 @@ async function showSavePanel(token, settings) {
 
   // Load topics from _index.json
   await loadTopics(token, settings.repo);
+
+  // Enable generate button and auto-trigger if page excerpt is available
+  if (pageExcerpt) {
+    btnGenerate.disabled = false;
+    triggerGeneration(token);
+  }
 }
 
 async function loadTopics(token, repo) {
@@ -333,6 +341,66 @@ async function loadTopics(token, repo) {
     console.warn('Failed to load topics:', err);
   }
 }
+
+// ---------------------------------------------------------------------------
+// AI generation (tags + summary)
+// ---------------------------------------------------------------------------
+
+async function triggerGeneration(token) {
+  if (!pageExcerpt) return;
+
+  const title = fieldTitle.value.trim();
+  const excerpt = [
+    pageExcerpt.description,
+    pageExcerpt.keywords,
+    (pageExcerpt.headings || []).join('. '),
+    pageExcerpt.bodyText,
+  ].filter(Boolean).join('\n').slice(0, 2000);
+
+  if (!excerpt) return;
+
+  // Show loading state
+  aiStatus.textContent = 'Generating…';
+  aiStatus.className = 'ai-status loading';
+  show(aiStatus);
+  btnGenerate.disabled = true;
+
+  try {
+    const { generateTagsAndSummary } = await import('../lib/tag-generator.js');
+    const result = await generateTagsAndSummary(title, excerpt, token);
+
+    if (result) {
+      // Populate tags (merge with any manually entered tags)
+      if (result.tags && result.tags.length > 0) {
+        const merged = [...new Set([...tags, ...result.tags])].slice(0, 15);
+        tags.length = 0;
+        merged.forEach((t) => tags.push(t));
+        renderTags();
+      }
+
+      // Populate summary (only if currently empty)
+      if (result.summary && !fieldSummary.value.trim()) {
+        fieldSummary.value = result.summary;
+      }
+
+      aiStatus.textContent = '✓ Ready to review';
+      aiStatus.className = 'ai-status';
+    } else {
+      aiStatus.textContent = 'Generation failed — add manually';
+      aiStatus.className = 'ai-status error';
+    }
+  } catch {
+    aiStatus.textContent = 'Generation failed — add manually';
+    aiStatus.className = 'ai-status error';
+  } finally {
+    btnGenerate.disabled = false;
+  }
+}
+
+btnGenerate.addEventListener('click', async () => {
+  const token = await getToken();
+  if (token) triggerGeneration(token);
+});
 
 // ---------------------------------------------------------------------------
 // New topic
@@ -454,29 +522,6 @@ btnSave.addEventListener('click', async () => {
       _source_date: '',
       _priority: priority,
     };
-
-    // Auto-generate tags from page content via GitHub Models API
-    if (pageExcerpt) {
-      const excerpt = [
-        pageExcerpt.description,
-        pageExcerpt.keywords,
-        (pageExcerpt.headings || []).join('. '),
-        pageExcerpt.bodyText,
-      ].filter(Boolean).join('\n').slice(0, 2000);
-
-      if (excerpt) {
-        let autoTags = null;
-        try {
-          const { generateTags } = await import('../lib/tag-generator.js');
-          autoTags = await generateTags(title, excerpt, token);
-        } catch { /* tag generation unavailable */ }
-
-        if (autoTags && autoTags.length > 0) {
-          const merged = [...new Set([...newSource.tags, ...autoTags])].slice(0, 15);
-          newSource.tags = merged;
-        }
-      }
-    }
 
     // Append to items array
     if (!existing.items) existing.items = [];

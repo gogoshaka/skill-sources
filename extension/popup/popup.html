@@ -99,17 +99,25 @@
       <label class="pill"><input type="radio" name="priority" value="P2"><span>P2</span></label>
     </fieldset>
 
-    <label>
-      Tags
-      <div id="tags-container" class="tags-container">
-        <input id="tag-input" type="text" placeholder="add tag + enter">
+    <div class="ai-section">
+      <div class="ai-header">
+        <span class="ai-label">✨ AI-generated</span>
+        <button id="btn-generate" class="link-btn" disabled>Generate</button>
+        <span id="ai-status" class="ai-status hidden"></span>
       </div>
-    </label>
 
-    <label>
-      Summary
-      <input id="field-summary" type="text" placeholder="One-line description…">
-    </label>
+      <label>
+        Tags
+        <div id="tags-container" class="tags-container">
+          <input id="tag-input" type="text" placeholder="add tag + enter">
+        </div>
+      </label>
+
+      <label>
+        Summary
+        <input id="field-summary" type="text" placeholder="One-line description…">
+      </label>
+    </div>
 
     <button id="btn-save" class="btn-primary full-width">Save Source</button>
 
