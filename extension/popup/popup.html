@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=400">
+  <link rel="stylesheet" href="popup.css">
+  <title>Skill Sources</title>
+</head>
+<body>
+  <!-- ── Header ──────────────────────────────────────────── -->
+  <header id="header">
+    <h1>🔗 Skill Sources</h1>
+    <div id="header-actions" class="hidden">
+      <button id="btn-settings" class="icon-btn" title="Settings">⚙️</button>
+      <button id="btn-logout" class="icon-btn" title="Logout">Logout</button>
+    </div>
+  </header>
+
+  <!-- ── Settings panel (toggled) ────────────────────────── -->
+  <section id="settings-panel" class="panel hidden">
+    <h2>Settings</h2>
+    <label>
+      GitHub OAuth Client ID
+      <input id="setting-client-id" type="text" placeholder="Ov23li…">
+    </label>
+    <label>
+      Source repo (owner/name)
+      <input id="setting-repo" type="text" placeholder="gogoshaka/skill-sources">
+    </label>
+    <div class="actions">
+      <button id="btn-save-settings" class="btn-primary">Save</button>
+      <button id="btn-cancel-settings" class="btn-secondary">Cancel</button>
+    </div>
+  </section>
+
+  <!-- ── Login view ──────────────────────────────────────── -->
+  <section id="login-panel" class="panel hidden">
+    <p>Connect your GitHub account to save sources.</p>
+
+    <label>
+      Client ID <span class="hint">(from GitHub OAuth App settings)</span>
+      <input id="login-client-id" type="text" placeholder="Ov23li…">
+    </label>
+
+    <button id="btn-connect" class="btn-primary full-width">Connect to GitHub</button>
+
+    <div id="device-code-info" class="hidden">
+      <div class="divider">After clicking</div>
+      <p>Go to: <a id="verification-link" href="#" target="_blank">github.com/login/device</a></p>
+      <p class="code-display">Enter code: <strong id="user-code"></strong></p>
+      <p id="auth-status" class="status">Waiting for authorisation…</p>
+    </div>
+  </section>
+
+  <!-- ── Save-source form ────────────────────────────────── -->
+  <section id="save-panel" class="panel hidden">
+    <label>
+      URL
+      <input id="field-url" type="url" readonly>
+    </label>
+
+    <label>
+      Title
+      <input id="field-title" type="text">
+    </label>
+
+    <label>
+      Topic
+      <select id="field-topic">
+        <option value="">Loading topics…</option>
+      </select>
+    </label>
+    <button id="btn-new-topic" class="link-btn">+ Create new topic…</button>
+
+    <!-- Inline new-topic form -->
+    <div id="new-topic-form" class="hidden sub-form">
+      <label>
+        Topic ID <span class="hint">(kebab-case)</span>
+        <input id="new-topic-id" type="text" placeholder="my-new-topic">
+      </label>
+      <label>
+        Description
+        <input id="new-topic-desc" type="text" placeholder="Short description">
+      </label>
+      <label>
+        Tags <span class="hint">(comma-separated)</span>
+        <input id="new-topic-tags" type="text" placeholder="tag1, tag2">
+      </label>
+      <div class="actions">
+        <button id="btn-create-topic" class="btn-primary">Create</button>
+        <button id="btn-cancel-topic" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+
+    <fieldset class="priority-group">
+      <legend>Priority</legend>
+      <label class="pill"><input type="radio" name="priority" value="P0" checked><span>P0</span></label>
+      <label class="pill"><input type="radio" name="priority" value="P1"><span>P1</span></label>
+      <label class="pill"><input type="radio" name="priority" value="P2"><span>P2</span></label>
+    </fieldset>
+
+    <label>
+      Tags
+      <div id="tags-container" class="tags-container">
+        <input id="tag-input" type="text" placeholder="add tag + enter">
+      </div>
+    </label>
+
+    <label>
+      Summary
+      <input id="field-summary" type="text" placeholder="One-line description…">
+    </label>
+
+    <button id="btn-save" class="btn-primary full-width">Save Source</button>
+
+    <div id="save-result" class="hidden"></div>
+  </section>
+
+  <!-- ── Loading / error ─────────────────────────────────── -->
+  <div id="loading" class="status hidden">Loading…</div>
+  <div id="error-msg" class="error hidden"></div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
