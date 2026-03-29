@@ -1,5 +1,5 @@
 {
-  "name": "skill-sources",
+  "name": "dask",
   "version": "1.0.0",
   "description": "Curated source library for [Slideless](https://github.com/gogoshaka/slideless) deck research.",
   "main": "index.js",
@@ -10,16 +10,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gogoshaka/skill-sources.git"
+    "url": "git+https://github.com/gogoshaka/dask.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "bugs": {
-    "url": "https://github.com/gogoshaka/skill-sources/issues"
+    "url": "https://github.com/gogoshaka/dask/issues"
   },
-  "homepage": "https://github.com/gogoshaka/skill-sources#readme",
+  "homepage": "https://github.com/gogoshaka/dask#readme",
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "playwright": "^1.58.2"

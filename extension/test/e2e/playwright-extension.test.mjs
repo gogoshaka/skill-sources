@@ -1,5 +1,5 @@
 /**
- * Playwright E2E test for the Skill Sources browser extension.
+ * Playwright E2E test for the Dask browser extension.
  *
  * Loads the extension in Chromium, injects a GitHub token into
  * chrome.storage.sync, and exercises the full popup UI:
@@ -25,7 +25,7 @@ import { execSync } from 'node:child_process';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const EXTENSION_PATH = path.resolve(__dirname, '..', '..');
 
-const REPO = 'gogoshaka/skill-sources';
+const REPO = 'gogoshaka/dask';
 const [OWNER, REPO_NAME] = REPO.split('/');
 const TEST_TOPIC = `test-playwright-${Date.now()}`;
 
@@ -41,7 +41,7 @@ function getToken() {
 
 const TOKEN = getToken();
 
-test.describe('Skill Sources Extension', () => {
+test.describe('Dask Extension', () => {
   /** @type {import('@playwright/test').BrowserContext} */
   let context;
   let extensionId;

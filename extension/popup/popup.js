@@ -1,4 +1,4 @@
-// Popup script for the Skill Sources extension.
+// Popup script for the Dask extension.
 // Manages the two-state UI: login vs. save-source form.
 
 // We can't use ES module imports directly from popup scripts that reference
@@ -65,7 +65,7 @@ async function getSettings() {
   const d = await chrome.storage.sync.get([STORAGE_KEY_CLIENT_ID, STORAGE_KEY_REPO]);
   return {
     clientId: d[STORAGE_KEY_CLIENT_ID] || '',
-    repo:     d[STORAGE_KEY_REPO]      || 'gogoshaka/skill-sources',
+    repo:     d[STORAGE_KEY_REPO]      || 'gogoshaka/dask',
   };
 }
 async function saveSettingsToStorage(clientId, repo) {

@@ -36,7 +36,7 @@ jobs:
           });
           const index = {
             version: 'https://jsonfeed.org/version/1.1',
-            title: 'Skill Sources',
+            title: 'Dask',
             description: 'Curated source library for Slideless deck research',
             _generated_at: new Date().toISOString(),
             items

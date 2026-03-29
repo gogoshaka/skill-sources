@@ -1,4 +1,4 @@
-# skill-sources
+# dask
 
 Curated source library for [Slideless](https://github.com/gogoshaka/slideless) deck research.
 
@@ -26,7 +26,7 @@ topics/
 ├── microsoft-defender.json
 └── ...
 _index.json                         ← auto-generated topic index
-sources.schema.json                 ← JSON schema for validation
+dask.schema.json                 ← JSON schema for validation
 extension/                          ← Chrome browser extension (Manifest V3)
 ├── manifest.json
 ├── background.js                   ← service worker (OAuth Device Flow polling)
@@ -135,7 +135,7 @@ Rules:
 
 When prompted, enter:
 - **Client ID:** `Ov23liqQtNWKD59WA08S`
-- **Repository:** `gogoshaka/skill-sources`
+- **Repository:** `gogoshaka/dask`
 
 ### Authentication
 

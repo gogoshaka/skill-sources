@@ -1,4 +1,4 @@
-// Service worker for the Skill Sources extension.
+// Service worker for the Dask extension.
 // Handles auth polling using chrome.alarms (survives service worker suspension).
 
 import {

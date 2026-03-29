@@ -1,4 +1,4 @@
-// GitHub API helper module for the Skill Sources extension.
+// GitHub API helper module for the Dask extension.
 // Handles OAuth Device Flow authentication and repo interactions.
 
 const STORAGE_KEY_TOKEN = 'gh_token';
@@ -36,7 +36,7 @@ export async function getSettings() {
   const data = await chrome.storage.sync.get([STORAGE_KEY_CLIENT_ID, STORAGE_KEY_REPO]);
   return {
     clientId: data[STORAGE_KEY_CLIENT_ID] || '',
-    repo: data[STORAGE_KEY_REPO] || 'gogoshaka/skill-sources',
+    repo: data[STORAGE_KEY_REPO] || 'gogoshaka/dask',
   };
 }
 

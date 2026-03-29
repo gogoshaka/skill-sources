@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Generates simple placeholder icon PNGs for the Skill Sources extension.
+// Generates simple placeholder icon PNGs for the Dask extension.
 // Each icon is a GitHub-green square with "SS" centered text.
 // Replace these with proper designed icons before publishing.
 

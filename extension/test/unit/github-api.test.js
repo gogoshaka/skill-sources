@@ -84,7 +84,7 @@ describe('getSettings', () => {
   it('returns defaults when nothing stored', async () => {
     const s = await api.getSettings();
     assert.equal(s.clientId, '');
-    assert.equal(s.repo, 'gogoshaka/skill-sources');
+    assert.equal(s.repo, 'gogoshaka/dask');
   });
 
   it('returns stored values', async () => {

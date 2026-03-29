@@ -1,4 +1,4 @@
-// End-to-end test for the Skill Sources extension.
+// End-to-end test for the Dask extension.
 // Exercises the real GitHub API — requires GITHUB_TOKEN env var.
 //
 // Run:   GITHUB_TOKEN=ghp_... node --test extension/test/e2e/github-e2e.test.js
@@ -8,7 +8,7 @@ import { describe, it, after } from 'node:test';
 import assert from 'node:assert/strict';
 
 const TOKEN = process.env.GITHUB_TOKEN;
-const REPO = process.env.SKILL_SOURCES_REPO || 'gogoshaka/skill-sources';
+const REPO = process.env.SKILL_SOURCES_REPO || 'gogoshaka/dask';
 const [OWNER, NAME] = REPO.split('/');
 const TEST_TOPIC = `_e2e-test-${Date.now()}`;
 const API = 'https://api.github.com';
