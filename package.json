@@ -1,0 +1,25 @@
+{
+  "name": "skill-sources",
+  "version": "1.0.0",
+  "description": "Curated source library for [Slideless](https://github.com/gogoshaka/slideless) deck research.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gogoshaka/skill-sources.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/gogoshaka/skill-sources/issues"
+  },
+  "homepage": "https://github.com/gogoshaka/skill-sources#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "playwright": "^1.58.2"
+  }
+}

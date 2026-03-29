@@ -303,7 +303,7 @@ async function loadTopics(token, repo) {
     const list = Array.isArray(topics) ? topics : Object.keys(topics);
 
     list.forEach((t) => {
-      const id = typeof t === 'string' ? t : t.id;
+      const id = typeof t === 'string' ? t : (t.topic || t.id);
       const opt = document.createElement('option');
       opt.value = id;
       opt.textContent = id;
