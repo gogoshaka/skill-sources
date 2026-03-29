@@ -54,6 +54,7 @@ const STORAGE_KEY_TOKEN     = 'gh_token';
 const STORAGE_KEY_REPO      = 'gh_repo';
 const STORAGE_KEY_USERNAME  = 'gh_username';
 const GITHUB_APP_CLIENT_ID  = 'Iv23liXEvwmMIjlGO2OM';
+const GITHUB_APP_CLIENT_SECRET = '5b84edac02577a99d12aedff9ceed7da0f60710e';
 
 async function getToken()    { return (await chrome.storage.sync.get(STORAGE_KEY_TOKEN))[STORAGE_KEY_TOKEN] || null; }
 async function getSettings() {
@@ -71,8 +72,10 @@ async function getUsername() {
 }
 
 // ---------------------------------------------------------------------------
-// PKCE helpers
+// PKCE OAuth web flow (primary — one-click login)
 // ---------------------------------------------------------------------------
+
+const EXTENSION_REDIRECT_URL = `https://${chrome.runtime.id}.chromiumapp.org/`;
 
 function generateCodeVerifier() {
   const arr = new Uint8Array(32);
@@ -88,12 +91,10 @@ async function generateCodeChallenge(verifier) {
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-const EXTENSION_REDIRECT_URL = `https://${chrome.runtime.id}.chromiumapp.org/`;
-
 async function loginWithPkce() {
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = await generateCodeChallenge(codeVerifier);
-  const state = generateCodeVerifier(); // random CSRF token
+  const state = generateCodeVerifier();
 
   const authUrl = `https://github.com/login/oauth/authorize?` +
     `client_id=${GITHUB_APP_CLIENT_ID}` +
@@ -112,12 +113,12 @@ async function loginWithPkce() {
   const code = params.get('code');
   if (!code) throw new Error('No authorization code received');
 
-  // Exchange code for token (no client_secret needed with PKCE)
   const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
     method: 'POST',
     headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify({
       client_id: GITHUB_APP_CLIENT_ID,
+      client_secret: GITHUB_APP_CLIENT_SECRET,
       code,
       redirect_uri: EXTENSION_REDIRECT_URL,
       code_verifier: codeVerifier,
@@ -132,7 +133,7 @@ async function loginWithPkce() {
 }
 
 // ---------------------------------------------------------------------------
-// Device code flow helpers (fallback — runs inline in popup)
+// Device code flow (fallback)
 // ---------------------------------------------------------------------------
 
 async function startDeviceFlow() {
