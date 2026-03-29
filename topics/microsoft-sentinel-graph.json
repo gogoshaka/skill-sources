@@ -99,7 +99,14 @@
       "priority": "P2",
       "summary": "Overview of Sentinel Graph architecture alongside Data Lake and MCP",
       "tags": [
-        "mcp-server"
+        "mcp-server",
+        "microsoft-sentinel",
+        "incident-graph",
+        "security-analytics",
+        "threat-hunting",
+        "kql",
+        "graph-visualization",
+        "data-lake"
       ],
       "addedAt": "2026-03-26T06:07:00Z",
       "addedBy": "gogoshaka"
