@@ -24,7 +24,8 @@ const settingRepo     = $('#setting-repo');
 
 // Login
 const loginClientId    = $('#login-client-id');
-const btnConnect       = $('#btn-connect');
+const btnOauthLogin    = $('#btn-oauth-login');
+const btnDeviceLogin   = $('#btn-device-login');
 const deviceCodeInfo   = $('#device-code-info');
 const verificationLink = $('#verification-link');
 const userCodeEl       = $('#user-code');
@@ -174,30 +175,77 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 function showLoginPanel(settings) {
   hide(headerActions);
+  hide(tabBar);
   show(loginPanel);
   hide(savePanel);
   hide(settingsPanel);
+  hide(recentPanel);
 
   loginClientId.value = settings.clientId;
 
-  btnConnect.addEventListener('click', async () => {
+  // Auto-check if auth already completed (user reopened popup after authorizing)
+  const authCheckInterval = setInterval(async () => {
+    const token = await getToken();
+    if (token) {
+      clearInterval(authCheckInterval);
+      location.reload();
+    }
+  }, 2000);
+
+  // Standard OAuth web flow login
+  btnOauthLogin.addEventListener('click', async () => {
     hideError();
     const clientId = loginClientId.value.trim();
     if (!clientId) { showError('Please enter a GitHub OAuth Client ID.'); return; }
 
-    // Persist the client ID for future use
     await saveSettingsToStorage(clientId, settings.repo);
 
-    btnConnect.disabled = true;
-    btnConnect.textContent = 'Starting…';
+    btnOauthLogin.disabled = true;
+    btnOauthLogin.textContent = 'Logging in…';
 
     try {
-      // Ask the background service worker to start the device flow.
-      const resp = await chrome.runtime.sendMessage({ type: 'START_AUTH', clientId });
+      const resp = await chrome.runtime.sendMessage({ type: 'START_OAUTH', clientId });
+      if (resp.error) throw new Error(resp.error);
+      // OAuth flow opens a browser tab; token will be stored by background.js
+      // The auto-check interval above will detect the token and reload
+      authStatusEl.textContent = 'Complete the login in the browser tab…';
+      authStatusEl.className = 'status';
+      show(deviceCodeInfo);
+    } catch (err) {
+      showError(err.message);
+      btnOauthLogin.disabled = false;
+      btnOauthLogin.textContent = 'Login with GitHub';
+    }
+  });
 
+  // Device code flow (fallback for environments without redirect support)
+  btnDeviceLogin.addEventListener('click', () => {
+    hide(btnOauthLogin.parentElement.querySelector('#btn-oauth-login'));
+    hide(btnDeviceLogin);
+    showDeviceCodeFlow(settings);
+  });
+}
+
+function showDeviceCodeFlow(settings) {
+  const btnStart = document.createElement('button');
+  btnStart.className = 'btn-primary full-width';
+  btnStart.textContent = 'Start Device Code Flow';
+  btnDeviceLogin.parentElement.appendChild(btnStart);
+
+  btnStart.addEventListener('click', async () => {
+    hideError();
+    const clientId = loginClientId.value.trim();
+    if (!clientId) { showError('Please enter a GitHub OAuth Client ID.'); return; }
+
+    await saveSettingsToStorage(clientId, settings.repo);
+
+    btnStart.disabled = true;
+    btnStart.textContent = 'Starting…';
+
+    try {
+      const resp = await chrome.runtime.sendMessage({ type: 'START_AUTH', clientId });
       if (resp.error) throw new Error(resp.error);
 
-      // Show the user code so they can enter it on github.com/login/device
       userCodeEl.textContent = resp.userCode;
       verificationLink.href = resp.verificationUri;
       verificationLink.textContent = resp.verificationUri;
@@ -206,8 +254,8 @@ function showLoginPanel(settings) {
       authStatusEl.className = 'status';
     } catch (err) {
       showError(err.message);
-      btnConnect.disabled = false;
-      btnConnect.textContent = 'Connect to GitHub';
+      btnStart.disabled = false;
+      btnStart.textContent = 'Start Device Code Flow';
     }
   });
 }

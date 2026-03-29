@@ -3,7 +3,7 @@
   "name": "Skill Sources",
   "description": "Save URLs to your curated source library for Slideless deck research",
   "version": "1.0.0",
-  "permissions": ["activeTab", "storage", "scripting", "alarms"],
+  "permissions": ["activeTab", "storage", "scripting", "alarms", "identity"],
   "host_permissions": [
     "https://api.github.com/*",
     "https://github.com/*",

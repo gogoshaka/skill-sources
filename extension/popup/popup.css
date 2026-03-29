@@ -150,6 +150,17 @@ label input[readonly] {
 }
 .link-btn:hover { text-decoration: underline; }
 
+.login-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.login-options .link-btn {
+  text-align: center;
+}
+
 .full-width { width: 100%; }
 
 .actions {
