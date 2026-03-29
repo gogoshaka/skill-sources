@@ -86,6 +86,10 @@
             "type": "string",
             "enum": ["P0", "P1", "P2"],
             "description": "Source reliability: P0=official, P1=reputable third-party, P2=community (extension)"
+          },
+          "_commit_sha": {
+            "type": "string",
+            "description": "Git commit SHA that added this source — used for like/reaction tracking"
           }
         }
       }

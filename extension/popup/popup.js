@@ -375,14 +375,22 @@ async function loadRecentLinks(token, repo, topicIds) {
     recent.forEach((item) => {
       const div = document.createElement('div');
       div.className = 'recent-item';
+      const commitSha = item._commit_sha || '';
+      const likeHtml = commitSha
+        ? `<button class="recent-like" data-sha="${escapeHtml(commitSha)}" data-repo="${owner}/${name}" title="Like">👍 <span class="like-count">…</span></button>`
+        : '';
       div.innerHTML = `
         <span class="recent-topic">${escapeHtml(item._topic)}</span>
         <a href="${escapeHtml(item.url)}" target="_blank" title="${escapeHtml(item.title || item.url)}">${escapeHtml(item.title || item.url)}</a>
+        ${likeHtml}
         <span class="recent-date">${relativeTime(item.date_published)}</span>
         <button class="recent-delete" data-topic="${escapeHtml(item._topic)}" data-url="${escapeHtml(item.url)}" title="Delete">×</button>
       `;
       recentList.appendChild(div);
     });
+
+    // Fetch like counts for items with commit SHAs
+    loadLikeCounts(token, owner, name, recent);
   } catch {
     recentList.innerHTML = '<span class="ai-status error">Could not load recent links</span>';
   }
@@ -434,16 +442,82 @@ function prependRecentItem(item) {
   const placeholder = recentList.querySelector('.ai-status');
   if (placeholder) placeholder.remove();
 
+  const commitSha = item._commit_sha || '';
   const div = document.createElement('div');
   div.className = 'recent-item';
   div.innerHTML = `
     <span class="recent-topic">${escapeHtml(item._topic)}</span>
     <a href="${escapeHtml(item.url)}" target="_blank" title="${escapeHtml(item.title || item.url)}">${escapeHtml(item.title || item.url)}</a>
+    ${commitSha ? `<button class="recent-like" data-sha="${escapeHtml(commitSha)}" title="Like">👍 <span class="like-count">0</span></button>` : ''}
     <span class="recent-date">${relativeTime(item.date_published)}</span>
     <button class="recent-delete" data-topic="${escapeHtml(item._topic)}" data-url="${escapeHtml(item.url)}" title="Delete">×</button>
   `;
   recentList.prepend(div);
 }
+
+// ---------------------------------------------------------------------------
+// Like system (commit comment reactions)
+// ---------------------------------------------------------------------------
+
+async function loadLikeCounts(token, owner, name, items) {
+  const withSha = items.filter((i) => i._commit_sha);
+  if (!withSha.length) return;
+
+  // Fetch comment counts in parallel (batch)
+  await Promise.all(withSha.map(async (item) => {
+    try {
+      const comments = await githubGet(
+        `/repos/${owner}/${name}/commits/${item._commit_sha}/comments`,
+        token
+      );
+      // Count 👍 reactions across all comments, plus count comments themselves as likes
+      let total = comments.length;
+      // Find the button in DOM and update
+      const btn = recentList.querySelector(`.recent-like[data-sha="${item._commit_sha}"]`);
+      if (btn) {
+        const countEl = btn.querySelector('.like-count');
+        if (countEl) countEl.textContent = total;
+      }
+    } catch { /* ignore */ }
+  }));
+}
+
+recentList.addEventListener('click', async (e) => {
+  const likeBtn = e.target.closest('.recent-like');
+  if (!likeBtn) return;
+
+  const sha = likeBtn.dataset.sha;
+  const repo = likeBtn.dataset.repo;
+  if (!sha) return;
+
+  likeBtn.disabled = true;
+
+  try {
+    const token = await getToken();
+    const settings = await getSettings();
+    const [owner, name] = settings.repo.split('/');
+
+    // Create a commit comment (acts as a "like")
+    await fetch(`https://api.github.com/repos/${owner}/${name}/commits/${sha}/comments`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ body: '👍' }),
+    });
+
+    // Update count
+    const countEl = likeBtn.querySelector('.like-count');
+    if (countEl) countEl.textContent = Number(countEl.textContent) + 1;
+    likeBtn.classList.add('liked');
+  } catch {
+    showError('Like failed');
+  } finally {
+    likeBtn.disabled = false;
+  }
+});
 
 // ---------------------------------------------------------------------------
 // New topic
@@ -595,11 +669,23 @@ btnSave.addEventListener('click', async () => {
 
     const updatedContent = btoa(unescape(encodeURIComponent(JSON.stringify(existing, null, 2))));
 
-    await githubPut(path, {
+    const putResult = await githubPut(path, {
       message: `Add source: ${title || url}`,
       content: updatedContent,
       sha: file.sha,
     }, token);
+
+    // Store the commit SHA in the source item for like tracking
+    const commitSha = putResult.commit?.sha;
+    if (commitSha) {
+      newSource._commit_sha = commitSha;
+      const withSha = btoa(unescape(encodeURIComponent(JSON.stringify(existing, null, 2))));
+      await githubPut(path, {
+        message: `Record commit ref for: ${title || url}`,
+        content: withSha,
+        sha: putResult.content.sha,
+      }, token);
+    }
 
     // Show success
     saveResult.className = 'success';

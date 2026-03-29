@@ -356,6 +356,42 @@ label input[readonly] {
   color: #8b949e;
 }
 
+.recent-like {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid #d1d5da;
+  border-radius: 12px;
+  padding: 1px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #57606a;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.recent-like:hover {
+  border-color: #0969da;
+  color: #0969da;
+}
+
+.recent-like.liked {
+  border-color: #2da44e;
+  color: #2da44e;
+}
+
+.recent-like:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.like-count {
+  font-weight: 600;
+  font-size: 11px;
+}
+
 /* ── Misc (other) ──────────────────────────────────────── */
 
 .divider {
