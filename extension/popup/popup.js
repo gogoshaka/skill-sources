@@ -271,27 +271,6 @@ $('#btn-logout').addEventListener('click', async () => {
 // Cached page excerpt extracted via chrome.scripting.executeScript
 let pageExcerpt = null;
 
-// Check local LLM availability and show badge
-async function checkLlmAvailability() {
-  const badge = $('#llm-badge');
-  try {
-    const { isPromptApiAvailable } = await import('../lib/tag-generator.js');
-    if (await isPromptApiAvailable()) {
-      badge.textContent = '✨ AI';
-      badge.title = 'Local AI available — tags auto-generated on-device';
-      badge.classList.add('llm-available');
-    } else {
-      badge.textContent = 'manual tags';
-      badge.title = 'Local AI unavailable — add tags manually';
-    }
-  } catch {
-    badge.textContent = 'manual tags';
-    badge.title = 'Local AI unavailable — add tags manually';
-  }
-  show(badge);
-  requestAnimationFrame(() => badge.classList.add('visible'));
-}
-
 async function showSavePanel(token, settings) {
   show(headerActions);
   hide(loginPanel);
@@ -325,9 +304,6 @@ async function showSavePanel(token, settings) {
 
   // Load topics from _index.json
   await loadTopics(token, settings.repo);
-
-  // Subtle check for local LLM availability
-  checkLlmAvailability();
 }
 
 async function loadTopics(token, repo) {
@@ -479,7 +455,7 @@ btnSave.addEventListener('click', async () => {
       _priority: priority,
     };
 
-    // Auto-generate tags from page content (never stored in git)
+    // Auto-generate tags from page content via GitHub Models API
     if (pageExcerpt) {
       const excerpt = [
         pageExcerpt.description,
@@ -491,13 +467,8 @@ btnSave.addEventListener('click', async () => {
       if (excerpt) {
         let autoTags = null;
         try {
-          const { generateTagsLocally, generateTagsViaGitHubModels } = await import('../lib/tag-generator.js');
-          // 1. Try local LLM (on-device)
-          autoTags = await generateTagsLocally(title, excerpt);
-          // 2. Fallback: GitHub Models API (cloud)
-          if (!autoTags) {
-            autoTags = await generateTagsViaGitHubModels(title, excerpt, token);
-          }
+          const { generateTags } = await import('../lib/tag-generator.js');
+          autoTags = await generateTags(title, excerpt, token);
         } catch { /* tag generation unavailable */ }
 
         if (autoTags && autoTags.length > 0) {
