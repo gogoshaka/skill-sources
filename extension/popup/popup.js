@@ -41,6 +41,8 @@ const btnSave      = $('#btn-save');
 const saveResult   = $('#save-result');
 const btnGenerate  = $('#btn-generate');
 const aiStatus     = $('#ai-status');
+const recentSection = $('#recent-section');
+const recentList    = $('#recent-list');
 
 // New topic
 const btnNewTopic    = $('#btn-new-topic');
@@ -305,7 +307,10 @@ async function showSavePanel(token, settings) {
   chrome.runtime.sendMessage({ type: 'GET_USERNAME' }).catch(() => {});
 
   // Load topics from _index.json
-  await loadTopics(token, settings.repo);
+  const topicIds = await loadTopics(token, settings.repo);
+
+  // Load recent links in background (non-blocking)
+  loadRecentLinks(token, settings.repo, topicIds);
 
   // Enable generate button and auto-trigger if page excerpt is available
   if (pageExcerpt) {
@@ -324,9 +329,11 @@ async function loadTopics(token, repo) {
 
     fieldTopic.innerHTML = '';
     const items = index.items || [];
+    const topicIds = [];
 
     items.forEach((item) => {
       const id = item.id || item.title;
+      topicIds.push(id);
       const opt = document.createElement('option');
       opt.value = id;
       opt.textContent = id;
@@ -336,9 +343,76 @@ async function loadTopics(token, repo) {
     if (items.length === 0) {
       fieldTopic.innerHTML = '<option value="">No topics found</option>';
     }
+
+    return topicIds;
   } catch (err) {
     fieldTopic.innerHTML = '<option value="">Could not load topics</option>';
     console.warn('Failed to load topics:', err);
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Recent links
+// ---------------------------------------------------------------------------
+
+function relativeTime(dateStr) {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
+async function loadRecentLinks(token, repo, topicIds) {
+  if (!topicIds.length) return;
+
+  show(recentSection);
+  recentList.innerHTML = '<span class="ai-status loading">Loading…</span>';
+
+  try {
+    const [owner, name] = repo.split('/');
+
+    // Fetch all topic files in parallel
+    const fetches = topicIds.map(async (id) => {
+      try {
+        const data = await githubGet(`/repos/${owner}/${name}/contents/topics/${id}.json`, token);
+        const topic = JSON.parse(atob(data.content));
+        return (topic.items || []).map((item) => ({ ...item, _topic: id }));
+      } catch { return []; }
+    });
+
+    const results = await Promise.all(fetches);
+    const allItems = results.flat();
+
+    // Sort by date_published descending, take latest 8
+    allItems.sort((a, b) => new Date(b.date_published) - new Date(a.date_published));
+    const recent = allItems.slice(0, 8);
+
+    if (recent.length === 0) {
+      recentList.innerHTML = '<span class="ai-status">No links yet</span>';
+      return;
+    }
+
+    recentList.innerHTML = '';
+    recent.forEach((item) => {
+      const div = document.createElement('div');
+      div.className = 'recent-item';
+      div.innerHTML = `
+        <span class="recent-topic">${escapeHtml(item._topic)}</span>
+        <a href="${escapeHtml(item.url)}" target="_blank" title="${escapeHtml(item.title || item.url)}">${escapeHtml(item.title || item.url)}</a>
+        <span class="recent-date">${relativeTime(item.date_published)}</span>
+      `;
+      recentList.appendChild(div);
+    });
+  } catch {
+    recentList.innerHTML = '<span class="ai-status error">Could not load recent links</span>';
   }
 }
 

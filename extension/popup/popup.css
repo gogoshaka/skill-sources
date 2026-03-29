@@ -319,6 +319,66 @@ label input[readonly] {
 
 /* ── Misc ───────────────────────────────────────────────── */
 
+.recent-section {
+  margin-top: 14px;
+  border-top: 1px solid #d1d5da;
+  padding-top: 10px;
+}
+
+.recent-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: #57606a;
+  margin-bottom: 8px;
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recent-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.recent-item .recent-topic {
+  flex-shrink: 0;
+  background: #ddf4ff;
+  color: #0969da;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.recent-item a {
+  color: #1f2328;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-item a:hover {
+  color: #0969da;
+}
+
+.recent-item .recent-date {
+  flex-shrink: 0;
+  color: #8b949e;
+  font-size: 10px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ── Misc (other) ──────────────────────────────────────── */
+
 .divider {
   text-align: center;
   color: #656d76;
