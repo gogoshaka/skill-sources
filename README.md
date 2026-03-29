@@ -32,7 +32,8 @@ extension/                          ← Chrome browser extension (Manifest V3)
 ├── background.js                   ← service worker (OAuth Device Flow polling)
 ├── lib/
 │   ├── github-api.js               ← GitHub REST + OAuth helpers
-│   └── content-extractor.js        ← injected via executeScript to extract page content
+│   ├── content-extractor.js        ← injected via executeScript to extract page content
+│   └── tag-generator.js            ← client-side tag generation via Prompt API
 ├── popup/
 │   ├── popup.html, popup.css, popup.js
 ├── test/
@@ -80,12 +81,33 @@ extension/                          ← Chrome browser extension (Manifest V3)
 
 ## Auto tag generation
 
-When a source is saved with the browser extension, the extension extracts a page excerpt (title, meta tags, headings, body text) using `chrome.scripting.executeScript` on the active tab — **no content script, no broad permissions**.
+When a source is saved, the extension extracts a page excerpt (title, meta tags, headings, body text) using `chrome.scripting.executeScript` on the active tab — **no content script, no broad permissions**.
 
-The excerpt is stored as a temporary `_excerpt` field in the source JSON. A GitHub Action then:
+Tags are generated through a two-tier strategy:
+
+### Tier 1 — Client-side (Prompt API, instant)
+
+If the browser supports the [Prompt API](https://developer.chrome.com/docs/ai/prompt-api) (Chrome/Edge 138+, Gemini Nano on-device), tags are generated **locally** before saving:
+
+- No network call, no latency, no `_excerpt` stored in the repo
+- Runs on-device via Gemini Nano — private and offline-capable
+- Requires 22GB disk space for the model (downloaded once)
+- Falls back to Tier 2 automatically if unavailable
+
+### Tier 2 — Server-side (GitHub Action, fallback)
+
+If the Prompt API isn't available, the excerpt is stored as a temporary `_excerpt` field. A GitHub Action then:
 
 1. Detects sources with `_excerpt`
-2. Calls **GitHub Models** (`gpt-5.4-mini`) with this prompt:
+2. Calls **GitHub Models** (`gpt-5.4-mini`) to generate tags
+3. Merges generated tags with any manual tags (deduped, capped at 15)
+4. Removes `_excerpt` and commits the enriched source
+
+**Parameters:** `temperature: 0.3`, `max_tokens: 200`
+
+### Shared prompt
+
+Both tiers use the same prompt for consistency:
 
 ```
 You are a tag generator for a technical knowledge base.
@@ -100,11 +122,6 @@ Rules:
 - Prefer specific terms over broad ones
 - Return ONLY a JSON array of strings, nothing else
 ```
-
-3. Merges generated tags with any manual tags (deduped, capped at 15)
-4. Removes `_excerpt` and commits the enriched source
-
-**Parameters:** `temperature: 0.3`, `max_tokens: 200`
 
 ## Browser extension
 

@@ -455,7 +455,25 @@ btnSave.addEventListener('click', async () => {
         (pageExcerpt.headings || []).join('. '),
         pageExcerpt.bodyText,
       ].filter(Boolean).join('\n').slice(0, 2000);
-      if (excerpt) newSource._excerpt = excerpt;
+
+      if (excerpt) {
+        // Try client-side tag generation via Prompt API (Gemini Nano)
+        let localTags = null;
+        try {
+          const { generateTagsLocally } = await import('../lib/tag-generator.js');
+          localTags = await generateTagsLocally(title, excerpt);
+        } catch { /* module not available or failed */ }
+
+        if (localTags && localTags.length > 0) {
+          // Merge local tags with manual tags (deduped)
+          const merged = [...new Set([...newSource.tags, ...localTags])].slice(0, 15);
+          newSource.tags = merged;
+          // No _excerpt needed — tags already generated client-side
+        } else {
+          // Fallback: attach excerpt for GitHub Action to process
+          newSource._excerpt = excerpt;
+        }
+      }
     }
 
     // Append to sources array
