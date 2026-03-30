@@ -28,7 +28,6 @@ const authStatusEl     = $('#auth-status');
 
 // Save form
 const fieldUrl     = $('#field-url');
-const fieldTitle   = $('#field-title');
 const fieldTopic   = $('#field-topic');
 const fieldSummary = $('#field-summary');
 const btnSave      = $('#btn-save');
@@ -302,6 +301,8 @@ $('#btn-logout').addEventListener('click', async () => {
 let pageExcerpt = null;
 // Cached AI result for use in save handler
 let cachedAIResult = null;
+// Page title (from active tab, not shown in UI)
+let pageTitle = '';
 
 async function generateAISummary(token) {
   show(aiSummaryLoading);
@@ -318,7 +319,7 @@ async function generateAISummary(token) {
 
   try {
     const { generateTagsAndSummary } = await import('../lib/tag-generator.js');
-    const result = await generateTagsAndSummary(fieldTitle.value, excerpt, token);
+    const result = await generateTagsAndSummary(pageTitle, excerpt, token);
     if (result) {
       cachedAIResult = result;
 
@@ -358,7 +359,7 @@ async function showSavePanel(token, settings) {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab) {
       fieldUrl.value   = tab.url  || '';
-      fieldTitle.value = tab.title || '';
+      pageTitle = tab.title || '';
 
       // Extract page content for tag generation (activeTab + scripting)
       if (tab.id && tab.url && !tab.url.startsWith('chrome://')) {
@@ -703,10 +704,10 @@ btnSave.addEventListener('click', async () => {
   hide(saveResult);
 
   const url      = fieldUrl.value.trim();
-  const title    = fieldTitle.value.trim();
+  const title    = pageTitle;
   const topic    = fieldTopic.value;
   const summary  = fieldSummary.value.trim();
-  const priority = document.querySelector('input[name="priority"]:checked')?.value || 'P0';
+  const priority = 'P0';
 
   if (!url)   { showError('URL is required.');   return; }
   if (!topic) { showError('Please select a topic.'); return; }
