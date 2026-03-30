@@ -184,51 +184,41 @@ test.describe('Dask Extension', () => {
     await popup.goto(popupUrl());
     await popup.waitForSelector('#save-panel:not(.hidden)', { timeout: 10_000 });
 
-    // The spinner element should exist in the DOM
-    const spinnerContainer = popup.locator('#ai-summary-loading');
-    await expect(spinnerContainer).toBeAttached();
+    // The ai-summary-loading element should exist in the DOM
+    const statusEl = popup.locator('#ai-summary-loading');
+    await expect(statusEl).toBeAttached();
 
-    // The .spinner element should exist inside it
-    const spinner = popup.locator('#ai-summary-loading .spinner');
-    await expect(spinner).toBeAttached();
-
-    // Check spinner computed styles (even when hidden, we can verify CSS is correct)
-    const spinnerStyles = await spinner.evaluate((el) => {
-      // Temporarily remove hidden from parent to measure rendered styles
-      const parent = el.closest('.hidden');
-      const wasHidden = parent !== null;
-      if (wasHidden) parent.classList.remove('hidden');
-      const cs = getComputedStyle(el);
-      const result = {
-        display: cs.display,
-        width: parseFloat(cs.width),
-        height: parseFloat(cs.height),
-        borderTopColor: cs.borderTopColor,
-        animationName: cs.animationName,
-      };
-      if (wasHidden) parent.classList.add('hidden');
-      return result;
-    });
-
-    // Spinner renders with non-zero size and the spin animation
-    // (display is 'block' because flex parent blockifies inline-block children)
-    expect(spinnerStyles.width).toBeGreaterThan(0);
-    expect(spinnerStyles.height).toBeGreaterThan(0);
-    expect(spinnerStyles.animationName).toBe('spin');
-
-    // Eventually, either the summary section or the loading element should resolve
-    // (spinner hides when summary arrives or extraction fails)
+    // Wait for the summary flow to resolve — either:
+    //  • The summary section appears (success), or
+    //  • The loading element shows an error/warning message (failure), or
+    //  • The loading element still has the spinner (in-progress)
     await popup.waitForFunction(
       () => {
         const loading = document.querySelector('#ai-summary-loading');
         const summary = document.querySelector('#ai-summary-section');
-        return (
-          loading.classList.contains('hidden') ||
-          (summary && !summary.classList.contains('hidden'))
-        );
+        // Resolved when: summary visible, or loading has text but no spinner (error state)
+        const hasError = loading && !loading.classList.contains('hidden') && !loading.querySelector('.spinner');
+        const hasResult = summary && !summary.classList.contains('hidden');
+        return hasError || hasResult;
       },
       { timeout: 30_000 }
     );
+
+    // Verify: either we got a summary OR an error message is displayed
+    const summaryVisible = await popup.locator('#ai-summary-section').evaluate(
+      (el) => !el.classList.contains('hidden')
+    );
+    if (summaryVisible) {
+      // Summary generated — check it has content
+      const text = await popup.locator('#ai-summary-text').textContent();
+      expect(text.length).toBeGreaterThan(0);
+    } else {
+      // Error/warning shown — verify the message is visible and not empty
+      const statusText = await statusEl.textContent();
+      expect(statusText.length).toBeGreaterThan(0);
+      // Should contain a warning or error indicator
+      expect(statusText).toMatch(/⚠️|❌|failed|error|Could not/i);
+    }
 
     await popup.close();
     await page.close();

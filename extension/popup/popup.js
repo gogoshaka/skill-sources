@@ -307,6 +307,7 @@ let pageTitle = '';
 
 async function generateAISummary(token) {
   show(aiSummaryLoading);
+  aiSummaryLoading.innerHTML = '<span class="spinner"></span> Generating summary…';
   hide(aiSummarySection);
 
   // Prefer YouTube transcript over regular page content
@@ -322,7 +323,11 @@ async function generateAISummary(token) {
     ].filter(Boolean).join('\n').slice(0, 2000);
   }
 
-  if (!excerpt) { hide(aiSummaryLoading); return; }
+  if (!excerpt) {
+    aiSummaryLoading.innerHTML = '⚠️ Could not extract page content for summary.';
+    aiSummaryLoading.className = 'ai-status';
+    return;
+  }
 
   try {
     const { generateTagsAndSummary } = await import('../lib/tag-generator.js');
@@ -342,10 +347,14 @@ async function generateAISummary(token) {
       show(aiSummarySection);
 
     } else {
-      hide(aiSummaryLoading);
+      aiSummaryLoading.innerHTML = '⚠️ Summary generation returned empty result.';
+      aiSummaryLoading.className = 'ai-status';
     }
-  } catch {
-    hide(aiSummaryLoading);
+  } catch (err) {
+    const msg = err.message || 'Unknown error';
+    aiSummaryLoading.innerHTML = `❌ Summary failed: ${msg}`;
+    aiSummaryLoading.className = 'ai-status';
+    console.error('AI summary error:', err);
   }
 }
 
@@ -401,7 +410,8 @@ async function showSavePanel(token, settings) {
   if (pageExcerpt || pageTranscript) {
     generateAISummary(token);
   } else {
-    hide(aiSummaryLoading);
+    aiSummaryLoading.innerHTML = '⚠️ Could not extract page content for summary.';
+    aiSummaryLoading.className = 'ai-status';
   }
 
   // Ensure we have a cached username

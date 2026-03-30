@@ -291,6 +291,11 @@ label input[readonly] {
   gap: 6px;
   animation: pulse 1.5s ease-in-out infinite;
 }
+.ai-status {
+  font-size: 12px;
+  color: #57606a;
+  padding: 6px 0;
+}
 
 /* ── Spinner ────────────────────────────────────────────── */
 

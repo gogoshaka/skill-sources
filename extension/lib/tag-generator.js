@@ -76,14 +76,17 @@ export async function generateTagsAndSummary(title, excerpt, token) {
       }),
     });
 
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`API ${res.status}: ${body.slice(0, 200)}`);
+    }
 
     const data = await res.json();
     const content = data.choices?.[0]?.message?.content;
-    if (!content) return null;
+    if (!content) throw new Error('Empty response from AI model');
 
     return parseResponse(content);
-  } catch {
-    return null;
+  } catch (err) {
+    throw err;
   }
 }
