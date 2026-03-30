@@ -90,6 +90,10 @@
           "_commit_sha": {
             "type": "string",
             "description": "Git commit SHA that added this source — used for like/reaction tracking"
+          },
+          "_transcript": {
+            "type": "string",
+            "description": "Full transcript text for video content"
           }
         }
       }

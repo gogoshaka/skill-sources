@@ -29,7 +29,6 @@ const authStatusEl     = $('#auth-status');
 // Save form
 const fieldUrl     = $('#field-url');
 const fieldTopic   = $('#field-topic');
-const fieldSummary = $('#field-summary');
 const btnSave      = $('#btn-save');
 const saveResult   = $('#save-result');
 const recentPanel   = $('#recent-panel');
@@ -299,6 +298,8 @@ $('#btn-logout').addEventListener('click', async () => {
 
 // Cached page excerpt extracted via chrome.scripting.executeScript
 let pageExcerpt = null;
+// Cached transcript for YouTube videos
+let pageTranscript = null;
 // Cached AI result for use in save handler
 let cachedAIResult = null;
 // Page title (from active tab, not shown in UI)
@@ -308,12 +309,18 @@ async function generateAISummary(token) {
   show(aiSummaryLoading);
   hide(aiSummarySection);
 
-  const excerpt = [
-    pageExcerpt.description,
-    pageExcerpt.keywords,
-    (pageExcerpt.headings || []).join('. '),
-    pageExcerpt.bodyText,
-  ].filter(Boolean).join('\n').slice(0, 2000);
+  // Prefer YouTube transcript over regular page content
+  let excerpt;
+  if (pageTranscript) {
+    excerpt = pageTranscript.slice(0, 3000);
+  } else {
+    excerpt = [
+      pageExcerpt.description,
+      pageExcerpt.keywords,
+      (pageExcerpt.headings || []).join('. '),
+      pageExcerpt.bodyText,
+    ].filter(Boolean).join('\n').slice(0, 2000);
+  }
 
   if (!excerpt) { hide(aiSummaryLoading); return; }
 
@@ -334,10 +341,6 @@ async function generateAISummary(token) {
       hide(aiSummaryLoading);
       show(aiSummarySection);
 
-      // Auto-fill summary field if empty
-      if (!fieldSummary.value && result.summary) {
-        fieldSummary.value = result.summary;
-      }
     } else {
       hide(aiSummaryLoading);
     }
@@ -372,12 +375,27 @@ async function showSavePanel(token, settings) {
             pageExcerpt = results[0].result;
           }
         } catch { /* some pages block injection — that's fine */ }
+
+        // Extract transcript from YouTube videos
+        const { isYouTubeVideo } = await import('../lib/youtube-utils.js');
+        if (isYouTubeVideo(tab.url)) {
+          try {
+            const tResults = await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ['lib/youtube-transcript.js'],
+            });
+            if (tResults && tResults[0] && tResults[0].result) {
+              pageTranscript = tResults[0].result;
+              aiSummaryLoading.textContent = '📺 Video transcript detected';
+            }
+          } catch { /* transcript extraction failed — continue without it */ }
+        }
       }
     }
   } catch { /* activeTab might not be available yet */ }
 
   // Auto-generate AI summary (non-blocking)
-  if (pageExcerpt) {
+  if (pageExcerpt || pageTranscript) {
     generateAISummary(token);
   }
 
@@ -706,7 +724,7 @@ btnSave.addEventListener('click', async () => {
   const url      = fieldUrl.value.trim();
   const title    = pageTitle;
   const topic    = fieldTopic.value;
-  const summary  = fieldSummary.value.trim();
+  const summary  = cachedAIResult?.summary || '';
   const priority = 'P0';
 
   if (!url)   { showError('URL is required.');   return; }
@@ -739,13 +757,18 @@ btnSave.addEventListener('click', async () => {
     if (cachedAIResult) {
       autoTags = cachedAIResult.tags || [];
       if (!autoSummary && cachedAIResult.summary) autoSummary = cachedAIResult.summary;
-    } else if (pageExcerpt) {
-      const excerpt = [
-        pageExcerpt.description,
-        pageExcerpt.keywords,
-        (pageExcerpt.headings || []).join('. '),
-        pageExcerpt.bodyText,
-      ].filter(Boolean).join('\n').slice(0, 2000);
+    } else if (pageTranscript || pageExcerpt) {
+      let excerpt;
+      if (pageTranscript) {
+        excerpt = pageTranscript.slice(0, 3000);
+      } else {
+        excerpt = [
+          pageExcerpt.description,
+          pageExcerpt.keywords,
+          (pageExcerpt.headings || []).join('. '),
+          pageExcerpt.bodyText,
+        ].filter(Boolean).join('\n').slice(0, 2000);
+      }
 
       if (excerpt) {
         try {
@@ -771,6 +794,13 @@ btnSave.addEventListener('click', async () => {
       _source_date: '',
       _priority: priority,
     };
+
+    if (pageTranscript) {
+      const { TRANSCRIPT_MAX_LENGTH } = await import('../lib/youtube-utils.js');
+      newSource._transcript = pageTranscript.length > TRANSCRIPT_MAX_LENGTH
+        ? pageTranscript.slice(0, TRANSCRIPT_MAX_LENGTH)
+        : pageTranscript;
+    }
 
     // Append to items array
     if (!existing.items) existing.items = [];
@@ -804,8 +834,8 @@ btnSave.addEventListener('click', async () => {
     // Immediately prepend to recent list
     prependRecentItem({ ...newSource, _topic: topic });
 
-    // Clear form fields for next save
-    fieldSummary.value = '';
+    // Reset cached AI result for next save
+    cachedAIResult = null;
   } catch (err) {
     showError(`Save failed: ${err.message}`);
   } finally {

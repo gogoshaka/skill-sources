@@ -286,7 +286,27 @@ label input[readonly] {
   50% { opacity: 0.5; }
 }
 .ai-status.loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ── Spinner ────────────────────────────────────────────── */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #d1d5da;
+  border-top-color: #2da44e;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
 }
 
 /* ── Status messages ────────────────────────────────────── */
