@@ -357,6 +357,9 @@ async function showSavePanel(token, settings) {
   hide(settingsPanel);
   hide(recentPanel);
 
+  // Show spinner immediately while content is being extracted
+  show(aiSummaryLoading);
+
   // Pre-fill URL and title from the active tab
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -386,7 +389,7 @@ async function showSavePanel(token, settings) {
             });
             if (tResults && tResults[0] && tResults[0].result) {
               pageTranscript = tResults[0].result;
-              aiSummaryLoading.textContent = '📺 Video transcript detected';
+              aiSummaryLoading.innerHTML = '<span class="spinner"></span> 📺 Summarizing video transcript…';
             }
           } catch { /* transcript extraction failed — continue without it */ }
         }
@@ -397,6 +400,8 @@ async function showSavePanel(token, settings) {
   // Auto-generate AI summary (non-blocking)
   if (pageExcerpt || pageTranscript) {
     generateAISummary(token);
+  } else {
+    hide(aiSummaryLoading);
   }
 
   // Ensure we have a cached username
