@@ -426,15 +426,56 @@ async function showSavePanel(token, settings) {
         if (isYouTubeVideo(tab.url)) {
           console.log('[Dask] YouTube video detected, extracting transcript…');
           try {
-            const tResults = await chrome.scripting.executeScript({
+            // Step 1: Get caption track URL from the MAIN world (where YT stores player data)
+            const captionResults = await chrome.scripting.executeScript({
               target: { tabId: tab.id },
-              files: ['lib/youtube-transcript.js'],
+              world: 'MAIN',
+              func: () => {
+                try {
+                  const pr = window.ytInitialPlayerResponse ||
+                    document.querySelector('#movie_player')?.getPlayerResponse?.();
+                  const tracks = pr?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+                  if (!tracks?.length) return null;
+                  const track =
+                    tracks.find((t) => t.languageCode === 'en' && t.kind !== 'asr') ||
+                    tracks.find((t) => t.languageCode === 'en') ||
+                    tracks.find((t) => t.kind !== 'asr') ||
+                    tracks[0];
+                  return track?.baseUrl || null;
+                } catch { return null; }
+              },
             });
-            console.log('[Dask] Transcript script result:', tResults?.[0]?.result ? `${tResults[0].result.length} chars` : 'null/empty');
-            if (tResults && tResults[0] && tResults[0].result) {
-              pageTranscript = tResults[0].result;
-              console.log('[Dask] Transcript preview:', pageTranscript.slice(0, 500));
-              aiSummaryLoading.innerHTML = '<span class="spinner"></span> 📺 Summarizing video transcript…';
+            const captionUrl = captionResults?.[0]?.result;
+            console.log('[Dask] Caption URL:', captionUrl ? captionUrl.slice(0, 80) + '…' : 'null');
+
+            if (captionUrl) {
+              // Step 2: Fetch and parse the caption XML (can run in ISOLATED world)
+              const tResults = await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                func: async (url) => {
+                  try {
+                    const res = await fetch(url);
+                    if (!res.ok) return null;
+                    const xml = await res.text();
+                    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+                    const nodes = doc.querySelectorAll('text');
+                    if (!nodes.length) return null;
+                    return Array.from(nodes).map((n) => {
+                      const el = document.createElement('span');
+                      el.innerHTML = n.textContent;
+                      return el.textContent.trim();
+                    }).filter(Boolean).join(' ');
+                  } catch { return null; }
+                },
+                args: [captionUrl],
+              });
+              const transcript = tResults?.[0]?.result;
+              console.log('[Dask] Transcript result:', transcript ? `${transcript.length} chars` : 'null');
+              if (transcript) {
+                pageTranscript = transcript;
+                console.log('[Dask] Transcript preview:', pageTranscript.slice(0, 500));
+                aiSummaryLoading.innerHTML = '<span class="spinner"></span> 📺 Summarizing video transcript…';
+              }
             }
           } catch (err) { console.warn('[Dask] Transcript extraction failed:', err); }
         }
