@@ -335,7 +335,9 @@ async function generateAISummary(token) {
 
   try {
     const { generateTagsAndSummary } = await import('../lib/tag-generator.js');
+    console.log('[Dask] Sending to AI:', excerpt.length, 'chars');
     const result = await generateTagsAndSummary(pageTitle, excerpt, token);
+    console.log('[Dask] AI result:', result);
     if (result) {
       cachedAIResult = result;
 
@@ -429,6 +431,8 @@ async function showSavePanel(token, settings) {
             });
             if (tResults && tResults[0] && tResults[0].result) {
               pageTranscript = tResults[0].result;
+              console.log('[Dask] YouTube transcript extracted:', pageTranscript.length, 'chars');
+              console.log('[Dask] Transcript preview:', pageTranscript.slice(0, 500));
               aiSummaryLoading.innerHTML = '<span class="spinner"></span> 📺 Summarizing video transcript…';
             }
           } catch { /* transcript extraction failed — continue without it */ }
