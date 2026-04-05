@@ -67,6 +67,10 @@ export async function generateTagsAndSummary(title, excerpt, token) {
   try {
     const userMessage = `Title: ${title}\n\nContent:\n${excerpt.slice(0, 3000)}`;
 
+    console.log('[Dask] AI request — model:', GITHUB_MODELS_MODEL);
+    console.log('[Dask] AI request — system prompt:', GENERATE_PROMPT.slice(0, 200) + '…');
+    console.log('[Dask] AI request — user message:', userMessage.slice(0, 500) + (userMessage.length > 500 ? '…' : ''));
+
     const res = await fetch(GITHUB_MODELS_URL, {
       method: 'POST',
       headers: {
