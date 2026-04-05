@@ -444,14 +444,23 @@ async function showSavePanel(token, settings) {
             console.log('[Dask] Caption data:', captionData);
 
             if (captionData?.url) {
-              console.log('[Dask] Fetching captions from:', captionData.url);
-              // Fetch caption XML directly from the popup (no need for content script)
-              try {
-                const res = await fetch(captionData.url);
-                console.log('[Dask] Caption fetch status:', res.status);
-                if (res.ok) {
+              // The cached caption URL may have an expired signature on SPA navigations.
+              // Try the cached URL first; if empty, fall back to a fresh timedtext request.
+              const lang = captionData.lang || 'en';
+              const videoId = new URL(tab.url).searchParams.get('v');
+              const urls = [
+                captionData.url,
+                videoId ? `https://www.youtube.com/api/timedtext?v=${videoId}&lang=${lang}&fmt=srv3` : null,
+              ].filter(Boolean);
+
+              for (const captionUrl of urls) {
+                console.log('[Dask] Trying caption URL:', captionUrl.slice(0, 100));
+                try {
+                  const res = await fetch(captionUrl);
+                  if (!res.ok) continue;
                   const xml = await res.text();
-                  console.log('[Dask] Caption response preview:', xml.slice(0, 500));
+                  if (!xml || xml.length < 20) { console.log('[Dask] Empty caption response, trying next…'); continue; }
+                  console.log('[Dask] Caption response:', xml.length, 'chars, preview:', xml.slice(0, 200));
                   const doc = new DOMParser().parseFromString(xml, 'application/xml');
                   const nodes = doc.querySelectorAll('text');
                   console.log('[Dask] Caption XML text nodes:', nodes.length);
@@ -462,11 +471,11 @@ async function showSavePanel(token, settings) {
                       return el.textContent.trim();
                     }).filter(Boolean).join(' ');
                     console.log('[Dask] Transcript:', pageTranscript.length, 'chars');
-                    console.log('[Dask] Transcript preview:', pageTranscript.slice(0, 300));
                     aiSummaryLoading.innerHTML = '<span class="spinner"></span> 📺 Summarizing video transcript…';
+                    break;
                   }
-                }
-              } catch (err) { console.warn('[Dask] Caption fetch failed:', err); }
+                } catch (err) { console.warn('[Dask] Caption fetch error:', err); }
+              }
             }
           } catch (err) { console.warn('[Dask] Transcript extraction failed:', err); }
 
