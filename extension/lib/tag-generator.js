@@ -19,7 +19,7 @@ Return ONLY a JSON object with this exact shape:
 {"summary": "...", "key_takeaways": ["...", "..."], "configuration": ["...", "..."], "references": ["...", "..."], "tags": ["...", "..."]}`;
 
 const GITHUB_MODELS_URL = 'https://models.inference.ai.azure.com/chat/completions';
-const GITHUB_MODELS_MODEL = 'gpt-5-mini';
+const GITHUB_MODELS_MODEL = 'gpt-4o-mini';
 
 /**
  * Parse and sanitize a JSON tag array from raw LLM text.
@@ -79,8 +79,6 @@ export async function generateTagsAndSummary(title, excerpt, token) {
           { role: 'system', content: GENERATE_PROMPT },
           { role: 'user', content: userMessage },
         ],
-        temperature: 1,
-        max_completion_tokens: 1024,
       }),
     });
 
