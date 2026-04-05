@@ -444,8 +444,7 @@ async function showSavePanel(token, settings) {
             console.log('[Dask] Caption data:', captionData);
 
             if (captionData?.url) {
-              // The cached caption URL may have an expired signature on SPA navigations.
-              // Try the cached URL first; if empty, fall back to a fresh timedtext request.
+              // Fetch caption XML from the YouTube tab's context (needs YT cookies)
               const lang = captionData.lang || 'en';
               const videoId = new URL(tab.url).searchParams.get('v');
               const urls = [
@@ -456,11 +455,18 @@ async function showSavePanel(token, settings) {
               for (const captionUrl of urls) {
                 console.log('[Dask] Trying caption URL:', captionUrl.slice(0, 100));
                 try {
-                  const res = await fetch(captionUrl);
-                  if (!res.ok) continue;
-                  const xml = await res.text();
+                  const tResults = await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    func: (url) => {
+                      return fetch(url)
+                        .then((r) => r.ok ? r.text() : '')
+                        .catch(() => '');
+                    },
+                    args: [captionUrl],
+                  });
+                  const xml = tResults?.[0]?.result;
                   if (!xml || xml.length < 20) { console.log('[Dask] Empty caption response, trying next…'); continue; }
-                  console.log('[Dask] Caption response:', xml.length, 'chars, preview:', xml.slice(0, 200));
+                  console.log('[Dask] Caption response:', xml.length, 'chars');
                   const doc = new DOMParser().parseFromString(xml, 'application/xml');
                   const nodes = doc.querySelectorAll('text');
                   console.log('[Dask] Caption XML text nodes:', nodes.length);
