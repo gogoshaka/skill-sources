@@ -445,38 +445,27 @@ async function showSavePanel(token, settings) {
 
             if (captionData?.url) {
               console.log('[Dask] Fetching captions from:', captionData.url);
-              // Fetch and parse the caption XML
-              const tResults = await chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                func: async (url) => {
-                  try {
-                    const res = await fetch(url);
-                    if (!res.ok) return { error: `HTTP ${res.status}` };
-                    const xml = await res.text();
-                    if (!xml) return { error: 'Empty response' };
-                    const doc = new DOMParser().parseFromString(xml, 'application/xml');
-                    const parseError = doc.querySelector('parsererror');
-                    if (parseError) return { error: 'XML parse error', preview: xml.slice(0, 200) };
-                    const nodes = doc.querySelectorAll('text');
-                    if (!nodes.length) return { error: 'No <text> nodes', preview: xml.slice(0, 200) };
-                    return {
-                      text: Array.from(nodes).map((n) => {
-                        const el = document.createElement('span');
-                        el.innerHTML = n.textContent;
-                        return el.textContent.trim();
-                      }).filter(Boolean).join(' ')
-                    };
-                  } catch (e) { return { error: e.message }; }
-                },
-                args: [captionData.url],
-              });
-              const transcriptData = tResults?.[0]?.result;
-              console.log('[Dask] Transcript fetch result:', transcriptData);
-              if (transcriptData?.text) {
-                pageTranscript = transcriptData.text;
-                console.log('[Dask] Transcript preview:', pageTranscript.slice(0, 300));
-                aiSummaryLoading.innerHTML = '<span class="spinner"></span> 📺 Summarizing video transcript…';
-              }
+              // Fetch caption XML directly from the popup (no need for content script)
+              try {
+                const res = await fetch(captionData.url);
+                console.log('[Dask] Caption fetch status:', res.status);
+                if (res.ok) {
+                  const xml = await res.text();
+                  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+                  const nodes = doc.querySelectorAll('text');
+                  console.log('[Dask] Caption XML text nodes:', nodes.length);
+                  if (nodes.length) {
+                    pageTranscript = Array.from(nodes).map((n) => {
+                      const el = document.createElement('span');
+                      el.innerHTML = n.textContent;
+                      return el.textContent.trim();
+                    }).filter(Boolean).join(' ');
+                    console.log('[Dask] Transcript:', pageTranscript.length, 'chars');
+                    console.log('[Dask] Transcript preview:', pageTranscript.slice(0, 300));
+                    aiSummaryLoading.innerHTML = '<span class="spinner"></span> 📺 Summarizing video transcript…';
+                  }
+                }
+              } catch (err) { console.warn('[Dask] Caption fetch failed:', err); }
             }
           } catch (err) { console.warn('[Dask] Transcript extraction failed:', err); }
 
