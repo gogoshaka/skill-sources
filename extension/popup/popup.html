@@ -67,9 +67,21 @@
 
     <!-- AI-generated summary (auto-loaded on popup open) -->
     <div id="ai-summary-section" class="ai-summary hidden">
-      <div class="ai-summary-header">✨ AI Summary</div>
+      <div class="ai-summary-header">📝 Summary</div>
       <p id="ai-summary-text" class="ai-summary-text"></p>
-      <ul id="ai-key-points" class="ai-key-points"></ul>
+
+      <div class="ai-summary-header">🔑 Key Takeaways</div>
+      <ul id="ai-key-takeaways" class="ai-key-points"></ul>
+
+      <div id="ai-config-section" class="hidden">
+        <div class="ai-summary-header">⚙️ Configuration</div>
+        <ul id="ai-configuration" class="ai-config-list"></ul>
+      </div>
+
+      <div id="ai-refs-section" class="hidden">
+        <div class="ai-summary-header">📚 References</div>
+        <ul id="ai-references" class="ai-ref-list"></ul>
+      </div>
     </div>
     <div id="ai-summary-loading" class="ai-status loading hidden"><span class="spinner"></span> Generating summary…</div>
 

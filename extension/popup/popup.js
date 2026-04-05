@@ -38,7 +38,11 @@ const tabBar        = $('#tab-bar');
 // AI summary
 const aiSummarySection = $('#ai-summary-section');
 const aiSummaryText    = $('#ai-summary-text');
-const aiKeyPoints      = $('#ai-key-points');
+const aiKeyTakeaways   = $('#ai-key-takeaways');
+const aiConfigSection  = $('#ai-config-section');
+const aiConfiguration  = $('#ai-configuration');
+const aiRefsSection    = $('#ai-refs-section');
+const aiReferences     = $('#ai-references');
 const aiSummaryLoading = $('#ai-summary-loading');
 
 // New topic
@@ -336,12 +340,39 @@ async function generateAISummary(token) {
       cachedAIResult = result;
 
       aiSummaryText.textContent = result.summary;
-      aiKeyPoints.innerHTML = '';
-      (result.key_points || []).forEach((point) => {
+
+      aiKeyTakeaways.innerHTML = '';
+      (result.key_takeaways || []).forEach((point) => {
         const li = document.createElement('li');
         li.textContent = point;
-        aiKeyPoints.appendChild(li);
+        aiKeyTakeaways.appendChild(li);
       });
+
+      // Configuration section (only shown when present)
+      if (result.configuration && result.configuration.length > 0) {
+        aiConfiguration.innerHTML = '';
+        result.configuration.forEach((item) => {
+          const li = document.createElement('li');
+          li.textContent = item;
+          aiConfiguration.appendChild(li);
+        });
+        show(aiConfigSection);
+      } else {
+        hide(aiConfigSection);
+      }
+
+      // References section (only shown when present)
+      if (result.references && result.references.length > 0) {
+        aiReferences.innerHTML = '';
+        result.references.forEach((item) => {
+          const li = document.createElement('li');
+          li.textContent = item;
+          aiReferences.appendChild(li);
+        });
+        show(aiRefsSection);
+      } else {
+        hide(aiRefsSection);
+      }
 
       hide(aiSummaryLoading);
       show(aiSummarySection);
