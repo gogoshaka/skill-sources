@@ -451,6 +451,7 @@ async function showSavePanel(token, settings) {
                 console.log('[Dask] Caption fetch status:', res.status);
                 if (res.ok) {
                   const xml = await res.text();
+                  console.log('[Dask] Caption response preview:', xml.slice(0, 500));
                   const doc = new DOMParser().parseFromString(xml, 'application/xml');
                   const nodes = doc.querySelectorAll('text');
                   console.log('[Dask] Caption XML text nodes:', nodes.length);
