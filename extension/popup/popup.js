@@ -506,7 +506,7 @@ async function showSavePanel(token, settings) {
         }
       }
     }
-  } catch { /* activeTab might not be available yet */ }
+  } catch (err) { console.error('[Dask] Tab/content extraction error:', err); }
 
   // Auto-generate AI summary (non-blocking)
   if (pageExcerpt || pageTranscript) {
