@@ -418,106 +418,94 @@ async function showSavePanel(token, settings) {
         if (isYT) {
           console.log('[Dask] YouTube video detected, extracting transcript…');
           try {
-            // Read player response from MAIN world (page's JS context)
-            const captionResults = await chrome.scripting.executeScript({
+            // Click "Show transcript" and scrape the DOM — most reliable method
+            const tResults = await chrome.scripting.executeScript({
               target: { tabId: tab.id },
-              world: 'MAIN',
-              func: () => {
+              func: async () => {
                 try {
-                  // Try multiple sources — YT updates these on SPA navigations
-                  const pr = window.ytInitialPlayerResponse
-                    || document.querySelector('#movie_player')?.getPlayerResponse?.()
-                    || window.ytplayer?.config?.args?.raw_player_response;
-                  if (!pr) return { error: 'No player response found' };
-                  const tracks = pr?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-                  if (!tracks?.length) return { error: 'No caption tracks', hasCaptions: !!pr?.captions };
-                  const track =
-                    tracks.find((t) => t.languageCode === 'en' && t.kind !== 'asr') ||
-                    tracks.find((t) => t.languageCode === 'en') ||
-                    tracks.find((t) => t.kind !== 'asr') ||
-                    tracks[0];
-                  return { url: track?.baseUrl || null, lang: track?.languageCode };
+                  // Check if transcript panel is already open
+                  let segments = document.querySelectorAll('ytd-transcript-segment-renderer');
+                  if (!segments.length) {
+                    // Find and click the "Show transcript" button
+                    // It's inside the description's engagement panels
+                    const btns = document.querySelectorAll(
+                      'ytd-video-description-transcript-section-renderer button, ' +
+                      'button[aria-label="Show transcript"], ' +
+                      '#primary-button ytd-button-renderer button'
+                    );
+                    let clicked = false;
+                    for (const btn of btns) {
+                      const text = btn.textContent?.toLowerCase() || '';
+                      if (text.includes('transcript') || btn.getAttribute('aria-label')?.toLowerCase().includes('transcript')) {
+                        btn.click();
+                        clicked = true;
+                        break;
+                      }
+                    }
+
+                    // Also try the "..." more actions menu → Show transcript
+                    if (!clicked) {
+                      // Look for the transcript button in the engagement panel triggers
+                      const triggers = document.querySelectorAll('ytd-engagement-panel-title-header-renderer, button.yt-spec-button-shape-next');
+                      for (const el of triggers) {
+                        if (el.textContent?.toLowerCase().includes('transcript')) {
+                          el.click();
+                          clicked = true;
+                          break;
+                        }
+                      }
+                    }
+
+                    if (!clicked) return { error: 'No transcript button found' };
+
+                    // Wait for transcript segments to appear
+                    for (let i = 0; i < 20; i++) {
+                      await new Promise((r) => setTimeout(r, 250));
+                      segments = document.querySelectorAll('ytd-transcript-segment-renderer');
+                      if (segments.length) break;
+                    }
+                  }
+
+                  if (!segments.length) return { error: 'No transcript segments after waiting' };
+
+                  // Extract text from each segment
+                  const text = Array.from(segments)
+                    .map((seg) => {
+                      const snippet = seg.querySelector('.segment-text, yt-formatted-string.segment-text');
+                      return snippet?.textContent?.trim() || '';
+                    })
+                    .filter(Boolean)
+                    .join(' ');
+
+                  // Close the transcript panel to leave the page clean
+                  const closeBtn = document.querySelector('ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"] #visibility-button button');
+                  if (closeBtn) closeBtn.click();
+
+                  return text ? { text, count: segments.length } : { error: 'Segments found but no text' };
                 } catch (e) { return { error: e.message }; }
               },
             });
-            const captionData = captionResults?.[0]?.result;
-            console.log('[Dask] Caption data:', captionData);
+            const transcriptData = tResults?.[0]?.result;
+            console.log('[Dask] Transcript DOM result:', transcriptData?.error || `${transcriptData?.count} segments, ${transcriptData?.text?.length} chars`);
 
-            if (captionData?.url || captionData?.lang) {
-              // Use YouTube's internal get_transcript API (more reliable than timedtext)
-              const videoId = new URL(tab.url).searchParams.get('v');
-              console.log('[Dask] Attempting transcript via youtubei API for video:', videoId);
-              try {
-                const tResults = await chrome.scripting.executeScript({
-                  target: { tabId: tab.id },
-                  world: 'MAIN',
-                  func: async (vid) => {
-                    try {
-                      // Get YouTube's internal API key and client info
-                      const cfg = window.ytcfg?.data_ || window.yt?.config_ || {};
-                      const apiKey = cfg.INNERTUBE_API_KEY || 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8';
-                      const clientName = cfg.INNERTUBE_CLIENT_NAME || 'WEB';
-                      const clientVersion = cfg.INNERTUBE_CLIENT_VERSION || '2.20240101';
-
-                      const res = await fetch(`https://www.youtube.com/youtubei/v1/get_transcript?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          context: {
-                            client: { clientName, clientVersion },
-                          },
-                          params: btoa(`\n\x0b${vid}`),
-                        }),
-                      });
-                      if (!res.ok) return { error: `HTTP ${res.status}` };
-                      const data = await res.json();
-                      // Extract transcript segments
-                      const body = data?.actions?.[0]?.updateEngagementPanelAction
-                        ?.content?.transcriptRenderer?.content
-                        ?.transcriptSearchPanelRenderer?.body?.transcriptSegmentListRenderer
-                        ?.initialSegments;
-                      if (!body?.length) {
-                        // Try alternative path
-                        const body2 = data?.actions?.[0]?.updateEngagementPanelAction
-                          ?.content?.transcriptRenderer?.body
-                          ?.transcriptBodyRenderer?.transcriptSegmentListRenderer
-                          ?.initialSegments;
-                        if (!body2?.length) return { error: 'No segments', keys: Object.keys(data || {}).join(',') };
-                        return { segments: body2 };
-                      }
-                      return { segments: body };
-                    } catch (e) { return { error: e.message }; }
-                  },
-                  args: [videoId],
-                });
-                const transcriptData = tResults?.[0]?.result;
-                console.log('[Dask] Transcript API result:', transcriptData?.error || `${transcriptData?.segments?.length} segments`);
-
-                if (transcriptData?.segments?.length) {
-                  pageTranscript = transcriptData.segments
-                    .map((s) => s?.transcriptSegmentRenderer?.snippet?.runs?.map((r) => r.text).join(''))
-                    .filter(Boolean)
-                    .join(' ');
-                  console.log('[Dask] Transcript:', pageTranscript.length, 'chars');
-                  aiSummaryLoading.innerHTML = '<span class="spinner"></span> 📺 Summarizing video transcript…';
-                }
-              } catch (err) { console.warn('[Dask] Transcript API failed:', err); }
+            if (transcriptData?.text) {
+              pageTranscript = transcriptData.text;
+              console.log('[Dask] Transcript preview:', pageTranscript.slice(0, 300));
+              aiSummaryLoading.innerHTML = '<span class="spinner"></span> 📺 Summarizing video transcript…';
             }
           } catch (err) { console.warn('[Dask] Transcript extraction failed:', err); }
 
-          // For YouTube, extract just the description as fallback excerpt
+          // Fallback: extract just the video description
           if (!pageTranscript) {
             console.log('[Dask] No transcript, trying YouTube description fallback…');
             try {
               const descResults = await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
                 func: () => {
-                  // Try meta description first, then structured description element
                   const meta = document.querySelector('meta[name="description"]');
                   if (meta?.content) return meta.content;
                   const desc = document.querySelector('#description-inner, ytd-text-inline-expander, #description');
                   if (desc?.innerText) return desc.innerText;
-                  // Last resort: video title
                   const title = document.querySelector('h1.ytd-watch-metadata yt-formatted-string, h1.title');
                   return title?.textContent || null;
                 },
